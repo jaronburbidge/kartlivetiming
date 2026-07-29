@@ -1,6 +1,7 @@
 {
   "clubId": "auckland",
-  "serverUrl": "https://kartsport-live.onrender.com",
+  "serverUrl": "https://kartlivetiming.onrender.com",
   "apiKey": "akc-secret-api-key-2026",
-  "watchFolder": "C:\\MYLAPS Orbits 5.0\\Exports"
+  "orbitsHost": "127.0.0.1",
+  "orbitsPort": 50000
 }
