@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KartSport Live Timing & Results</title>
+  <style>
+    :root {
+      --bg: #0b0e14;
+      --card-bg: #151a23;
+      --accent: #e63946;
+      --gold: #ffd700;
+      --silver: #c0c0c0;
+      --bronze: #cd7f32;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --border: #232a36;
+      --success: #10b981;
+      --danger: #ef4444;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding: 20px; }
+
+    header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 2px solid var(--border); margin-bottom: 20px; }
+    .logo-group h1 { font-size: 1.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: var(--accent); }
+    .logo-group h2 { font-size: 1rem; color: var(--text-muted); font-weight: 400; }
+
+    .controls { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+    select, button {
+      background: var(--card-bg); color: var(--text); border: 1px solid var(--border);
+      padding: 10px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; outline: none;
+    }
+    select:focus, button:focus { border-color: var(--accent); }
+
+    /* Podium Layout */
+    .podium { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+    .podium-card { background: var(--card-bg); border-radius: 8px; padding: 20px; text-align: center; border: 2px solid var(--border); }
+    .podium-card.p1 { border-color: var(--gold); order: 2; }
+    .podium-card.p2 { border-color: var(--silver); order: 1; }
+    .podium-card.p3 { border-color: var(--bronze); order: 3; }
+    .rank-badge { font-size: 1.2rem; font-weight: 900; margin-bottom: 8px; }
+    .p1 .rank-badge { color: var(--gold); }
+    .p2 .rank-badge { color: var(--silver); }
+    .p3 .rank-badge { color: var(--bronze); }
+    .driver-name { font-size: 1.3rem; font-weight: 700; margin-bottom: 4px; }
+    .kart-num { font-size: 0.9rem; color: var(--text-muted); }
+
+    /* Telemetry Table */
+    .table-container { background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border); overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th, td { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+    th { background: #1c222e; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; }
+    tr:last-child td { border-bottom: none; }
+    .pos-col { font-weight: 700; width: 60px; }
+    .no-data { text-align: center; padding: 40px; color: var(--text-muted); }
+
+    @media (max-width: 768px) {
+      .podium { grid-template-columns: 1fr; }
+      .podium-card.p1 { order: 1; }
+      .podium-card.p2 { order: 2; }
+      .podium-card.p3 { order: 3; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo-group">
+      <h1 id="clubName">KartSport Live</h1>
+      <h2>Timing & Results Board</h2>
+    </div>
+    <div id="syncStatus" style="font-size: 0.85rem; color: var(--text-muted);">Connecting...</div>
+  </header>
+
+  <div class="controls">
+    <select id="classSelect"><option value="">Select Class...</option></select>
+    <select id="sessionSelect">
+      <option value="Heat 1">Heat 1</option>
+      <option value="Heat 2">Heat 2</option>
+      <option value="Pre-Final">Pre-Final</option>
+      <option value="Final">Final</option>
+      <option value="Overall">Overall Points</option>
+    </select>
+  </div>
+
+  <div id="podiumContainer" class="podium"></div>
+
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr id="tableHeaders">
+          <th>Pos</th>
+          <th>Kart #</th>
+          <th>Driver</th>
+          <th>Laps</th>
+          <th>Best Lap</th>
+          <th>Gap</th>
+        </tr>
+      </thead>
+      <tbody id="resultsTableBody">
+        <tr><td colspan="6" class="no-data">Select a class and session to view results.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    let rawData = { heat: {}, overall: {} };
+    let socket;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const clubOverride = urlParams.get('club');
+
+    function initWebSocket() {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}?club=${clubOverride || ''}`;
+
+      socket = new WebSocket(wsUrl);
+
+      socket.onopen = () => {
+        const syncStatus = document.getElementById('syncStatus');
+        syncStatus.innerText = 'Live (WebSocket Connected)';
+        syncStatus.style.color = 'var(--success)';
+      };
+
+      socket.onmessage = (event) => {
+        const payload = JSON.parse(event.data);
+        
+        document.getElementById('clubName').innerText = payload.clubName || 'KartSport Live';
+        rawData = payload.results || { heat: {}, overall: {} };
+        
+        updateClassDropdown();
+        render();
+        
+        const syncStatus = document.getElementById('syncStatus');
+        syncStatus.innerText = `Live • Updated ${new Date().toLocaleTimeString()}`;
+        syncStatus.style.color = 'var(--success)';
+      };
+
+      socket.onclose = () => {
+        const syncStatus = document.getElementById('syncStatus');
+        syncStatus.innerText = 'Disconnected. Reconnecting...';
+        syncStatus.style.color = 'var(--danger)';
+        setTimeout(initWebSocket, 3000);
+      };
+
+      socket.onerror = (err) => {
+        console.error('WebSocket Error:', err);
+        socket.close();
+      };
+    }
+
+    function updateClassDropdown() {
+      const classSelect = document.getElementById('classSelect');
+      const currentSelected = classSelect.value;
+      
+      const allClasses = new Set([
+        ...Object.keys(rawData.heat || {}),
+        ...Object.keys(rawData.overall || {})
+      ]);
+
+      if (allClasses.size === 0) return;
+
+      classSelect.innerHTML = '';
+      allClasses.forEach(cls => {
+        const opt = document.createElement('option');
+        opt.value = cls;
+        opt.innerText = cls;
+        classSelect.appendChild(opt);
+      });
+
+      if (allClasses.has(currentSelected)) {
+        classSelect.value = currentSelected;
+      }
+    }
+
+    function render() {
+      const selectedClass = document.getElementById('classSelect').value;
+      const selectedSession = document.getElementById('sessionSelect').value;
+
+      const podiumEl = document.getElementById('podiumContainer');
+      const tbodyEl = document.getElementById('resultsTableBody');
+      const headersEl = document.getElementById('tableHeaders');
+
+      podiumEl.innerHTML = '';
+      tbodyEl.innerHTML = '';
+
+      if (!selectedClass) {
+        tbodyEl.innerHTML = '<tr><td colspan="6" class="no-data">No active class selected or no data available.</td></tr>';
+        return;
+      }
+
+      let drivers = [];
+      const isOverall = selectedSession === 'Overall';
+
+      if (isOverall) {
+        drivers = rawData.overall?.[selectedClass] || [];
+        headersEl.innerHTML = `<th>Pos</th><th>Kart #</th><th>Driver</th><th>Points</th>`;
+      } else {
+        drivers = rawData.heat?.[selectedClass]?.[selectedSession] || [];
+        headersEl.innerHTML = `<th>Pos</th><th>Kart #</th><th>Driver</th><th>Laps</th><th>Best Lap</th><th>Gap</th>`;
+      }
+
+      if (drivers.length === 0) {
+        tbodyEl.innerHTML = `<tr><td colspan="${isOverall ? 4 : 6}" class="no-data">No data recorded for ${selectedClass} - ${selectedSession}</td></tr>`;
+        return;
+      }
+
+      // Render Top 3 Podium
+      const top3 = drivers.slice(0, 3);
+      top3.forEach((d, idx) => {
+        podiumEl.innerHTML += `
+          <div class="podium-card p${idx + 1}">
+            <div class="rank-badge">P${idx + 1}</div>
+            <div class="driver-name">${d.name}</div>
+            <div class="kart-num">Kart #${d.number}</div>
+          </div>
+        `;
+      });
+
+      // Render Telemetry Table
+      drivers.forEach((d, idx) => {
+        const row = document.createElement('tr');
+        if (isOverall) {
+          row.innerHTML = `
+            <td class="pos-col">${idx + 1}</td>
+            <td>#${d.number}</td>
+            <td>${d.name}</td>
+            <td>${d.points} pts</td>
+          `;
+        } else {
+          row.innerHTML = `
+            <td class="pos-col">${idx + 1}</td>
+            <td>#${d.number}</td>
+            <td>${d.name}</td>
+            <td>${d.laps || '-'}</td>
+            <td>${d.bestLap || '-'}</td>
+            <td>${d.gap || '-'}</td>
+          `;
+        }
+        tbodyEl.appendChild(row);
+      });
+    }
+
+    document.getElementById('classSelect').addEventListener('change', render);
+    document.getElementById('sessionSelect').addEventListener('change', render);
+
+    // Run connection engine
+    initWebSocket();
+  </script>
+</body>
+</html>
