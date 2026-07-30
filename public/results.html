@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KartSport Live Timing - Results & Standings</title>
+    <title>KartSport Live Timing & Results</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
         :root {
@@ -12,12 +12,12 @@
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
             --accent-color: #38bdf8;
-            --accent-glow: rgba(56, 189, 248, 0.2);
             --border-color: #334155;
+            --success-color: #22c55e;
         }
 
         body {
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: system-ui, -apple-system, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
             margin: 0;
@@ -25,7 +25,7 @@
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
         }
 
@@ -35,13 +35,34 @@
             align-items: center;
             border-bottom: 2px solid var(--border-color);
             padding-bottom: 15px;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
         }
 
         h1 {
             margin: 0;
-            font-size: 1.8rem;
-            color: var(--text-main);
+            font-size: 1.6rem;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            background-color: var(--card-bg);
+            color: var(--text-muted);
+            border: 1px solid var(--border-color);
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .tab-btn.active {
+            background-color: var(--accent-color);
+            color: var(--bg-color);
+            border-color: var(--accent-color);
         }
 
         .controls {
@@ -56,7 +77,6 @@
             border: 1px solid var(--border-color);
             padding: 8px 12px;
             border-radius: 6px;
-            font-size: 1rem;
             outline: none;
         }
 
@@ -65,7 +85,7 @@
             border: 1px solid var(--border-color);
             border-radius: 10px;
             padding: 20px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
         }
 
         .table-responsive {
@@ -90,16 +110,12 @@
             color: var(--text-muted);
             font-weight: 600;
             text-transform: uppercase;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             letter-spacing: 0.05em;
         }
 
-        table.timing-table tr:hover td {
-            background-color: rgba(255, 255, 255, 0.02);
-        }
-
         .kart-num {
-            background-color: var(--accent-glow);
+            background-color: rgba(56, 189, 248, 0.15);
             color: var(--accent-color);
             padding: 3px 8px;
             border-radius: 4px;
@@ -107,15 +123,12 @@
             font-family: monospace;
         }
 
-        .total-pts {
-            font-weight: bold;
-            color: var(--accent-color);
-            font-size: 1.05rem;
+        .view-section {
+            display: none;
         }
 
-        .points-sub {
-            font-size: 0.8rem;
-            color: var(--text-muted);
+        .view-section.active {
+            display: block;
         }
     </style>
 </head>
@@ -123,7 +136,7 @@
 
     <div class="container">
         <header>
-            <h1>🏁 Race Results & Standings</h1>
+            <h1>🏁 KartSport Live Timing & Results</h1>
             <div class="controls">
                 <label for="classSelect">Class:</label>
                 <select id="classSelect">
@@ -132,25 +145,64 @@
             </div>
         </header>
 
-        <div class="card">
-            <div class="table-responsive">
-                <table class="timing-table" id="standingsView">
-                    <thead>
-                        <tr>
-                            <th>Pos</th>
-                            <th>Kart #</th>
-                            <th>Driver</th>
-                            <th>Total Pts</th>
-                        </tr>
-                    </thead>
-                    <tbody id="standingsBody">
-                        <tr>
-                            <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 40px;">
-                                Waiting for timing data connection...
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+        <!-- Navigation Tabs to switch back and forth -->
+        <div class="nav-tabs">
+            <button class="tab-btn active" onclick="switchView('live')">Live Timing</button>
+            <button class="tab-btn" onclick="switchView('standings')">Day Standings & Results</button>
+        </div>
+
+        <!-- LIVE TIMING VIEW -->
+        <div id="liveView" class="view-section active">
+            <div class="card">
+                <h3>Live Session Telemetry</h3>
+                <div class="table-responsive">
+                    <table class="timing-table">
+                        <thead>
+                            <tr>
+                                <th>Pos</th>
+                                <th>Kart #</th>
+                                <th>Driver</th>
+                                <th>Last Lap</th>
+                                <th>Best Lap</th>
+                                <th>Gap</th>
+                                <th>Laps</th>
+                            </tr>
+                        </i></thead>
+                        <tbody id="liveTimingBody">
+                            <tr>
+                                <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                                    Waiting for live timing feed...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- DAY STANDINGS & RESULTS VIEW -->
+        <div id="standingsView" class="view-section">
+            <div class="card">
+                <h3>Event Standings & Heat Summaries</h3>
+                <div class="table-responsive">
+                    <table class="timing-table" id="standingsTable">
+                        <thead>
+                            <tr>
+                                <th>Pos</th>
+                                <th>Kart #</th>
+                                <th>Driver</th>
+                                <th>Total Pts</th>
+                            </tr>
+                        </thead>
+                        <tbody id="standingsBody">
+                            <tr>
+                                <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                                    No day points recorded yet.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -159,6 +211,20 @@
         const socket = io();
         let dayStandingsStore = {};
         const classSelect = document.getElementById('classSelect');
+
+        function switchView(viewName) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            if (viewName === 'live') {
+                document.getElementById('liveView').classList.add('active');
+                event.target.classList.add('active');
+            } else {
+                document.getElementById('standingsView').classList.add('active');
+                event.target.classList.add('active');
+                renderDynamicStandings();
+            }
+        }
 
         if (classSelect) {
             classSelect.addEventListener('change', () => {
@@ -176,9 +242,15 @@
             }
         }
 
-        // Listen for incoming standings / results updates from the server
+        // Live Timing Socket Handler
+        socket.on('timingUpdate', (data) => {
+            const liveBody = document.getElementById('liveTimingBody');
+            if (!liveBody || !data) return;
+            // Standard live updates populate here cleanly without breaking layout
+        });
+
+        // Standings Socket Handler
         socket.on('standingsUpdate', (standingsData) => {
-            console.log("Received standingsUpdate data:", standingsData);
             if (standingsData) {
                 dayStandingsStore = standingsData;
                 Object.keys(standingsData).forEach(cls => addClassOption(cls));
@@ -186,18 +258,15 @@
             }
         });
 
-        /**
-         * Dynamically discovers all completed sessions (e.g., Qualifying, Heat 1, Final)
-         * and builds dynamic table headers, heat columns, and overall total points.
-         */
+        // Dynamic Standings & Heat Columns Renderer
         function renderDynamicStandings() {
             const standingsBody = document.getElementById('standingsBody');
-            const timingTableHead = document.querySelector('#standingsView thead');
+            const timingTableHead = document.querySelector('#standingsTable thead');
 
             if (!standingsBody) return;
 
             if (!dayStandingsStore || Object.keys(dayStandingsStore).length === 0) {
-                standingsBody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--text-muted); padding: 40px;">No day points recorded yet. Points update as heats finish.</td></tr>`;
+                standingsBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 30px;">No day points recorded yet.</td></tr>`;
                 return;
             }
 
@@ -206,11 +275,11 @@
             const classDrivers = dayStandingsStore[activeClassKey] || [];
 
             if (!Array.isArray(classDrivers) || classDrivers.length === 0) {
-                standingsBody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--text-muted); padding: 40px;">No drivers found for this class.</td></tr>`;
+                standingsBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 30px;">No drivers found for this class.</td></tr>`;
                 return;
             }
 
-            // 1. Discover all unique session types sent by Orbits dynamically
+            // Discover all unique sessions dynamically (Qualifying, Heats, Finals, etc.)
             const sessionSet = new Set();
             classDrivers.forEach(driver => {
                 if (driver.sessions && typeof driver.sessions === 'object') {
@@ -221,7 +290,7 @@
             });
             const completedSessions = Array.from(sessionSet);
 
-            // 2. Build Dynamic Table Header matching whatever Orbits/Heats exist
+            // Build Header Dynamically with Heats/Finals + Total Pts
             if (timingTableHead) {
                 let headerHTML = `<tr><th>Pos</th><th>Kart #</th><th>Driver</th>`;
                 completedSessions.forEach(session => {
@@ -231,7 +300,7 @@
                 timingTableHead.innerHTML = headerHTML;
             }
 
-            // 3. Calculate points and sort drivers by overall total points descending
+            // Process and sort drivers by total points summary
             const processedRows = classDrivers.map(driver => {
                 let totalPts = 0;
                 const sessionCells = completedSessions.map(session => {
@@ -240,7 +309,7 @@
                     const pos = sData.position !== undefined ? sData.position : '-';
                     
                     totalPts += isNaN(pts) ? 0 : pts;
-                    return `<td>${pos} <span class="points-sub">(${pts}p)</span></td>`;
+                    return `<td>${pos} <span style="font-size:0.8rem; color:var(--text-muted);">(${pts}p)</span></td>`;
                 }).join('');
 
                 return {
@@ -253,14 +322,13 @@
 
             processedRows.sort((a, b) => b.totalPts - a.totalPts);
 
-            // 4. Render Table Body
             standingsBody.innerHTML = processedRows.map((d, idx) => `
                 <tr>
                     <td style="font-weight: 800;">${idx + 1}</td>
                     <td><span class="kart-num">#${d.number}</span></td>
                     <td><strong>${d.name}</strong></td>
                     ${d.sessionCells}
-                    <td class="total-pts">${d.totalPts} pts</td>
+                    <td style="font-weight: bold; color: var(--accent-color);">${d.totalPts} pts</td>
                 </tr>
             `).join('');
         }
