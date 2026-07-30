@@ -4,13 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KartSport Live Timing - Select Club</title>
+    <script src="/socket.io/socket.io.js"></script>
     <style>
         :root {
             --bg-dark: #0d1117;
             --card-bg: #161b22;
             --border-color: #30363d;
             --accent-red: #e63946;
-            --accent-gold: #ffd700;
+            --accent-green: #2ea44f;
             --text-main: #f0f6fc;
             --text-muted: #8b949e;
         }
@@ -48,8 +49,12 @@
 
         .club-icon { font-size: 2.2rem; margin-bottom: 10px; }
         .club-name { font-size: 1.2rem; font-weight: 700; margin-bottom: 8px; }
-        .club-status { font-size: 0.85rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
-        .live-dot { width: 8px; height: 8px; border-radius: 50%; background-color: #2ea44f; box-shadow: 0 0 6px #2ea44f; }
+        
+        .club-status { font-size: 0.85rem; color: var(--accent-red); display: flex; align-items: center; gap: 6px; font-weight: 600; }
+        .club-status.live { color: var(--accent-green); }
+
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background-color: var(--accent-red); box-shadow: 0 0 6px var(--accent-red); }
+        .club-status.live .status-dot { background-color: var(--accent-green); box-shadow: 0 0 6px var(--accent-green); }
 
         footer { margin-top: 50px; color: var(--text-muted); font-size: 0.85rem; text-align: center; }
     </style>
@@ -62,64 +67,98 @@
     </div>
 
     <div class="club-grid">
-        <a href="/results.html?club=whangarei" class="club-card">
+        <a href="/results.html?club=whangarei" class="club-card" data-club="whangarei">
             <div class="club-icon">🏎️</div>
             <div class="club-name">KartSport Whangarei</div>
-            <div class="club-status"><span class="live-dot"></span> Live Telemetry Ready</div>
+            <div class="club-status"><span class="status-dot"></span><span class="status-text">No Racing In Progress</span></div>
         </a>
 
-        <a href="/results.html?club=auckland" class="club-card">
+        <a href="/results.html?club=auckland" class="club-card" data-club="auckland">
             <div class="club-icon">🏎️</div>
             <div class="club-name">KartSport Auckland Mt Wellington</div>
-            <div class="club-status"><span class="live-dot"></span> Live Telemetry Ready</div>
+            <div class="club-status"><span class="status-dot"></span><span class="status-text">No Racing In Progress</span></div>
         </a>
 
-        <a href="/results.html?club=hamilton" class="club-card">
+        <a href="/results.html?club=hamilton" class="club-card" data-club="hamilton">
             <div class="club-icon">🏎️</div>
             <div class="club-name">KartSport Hamilton</div>
-            <div class="club-status"><span class="live-dot"></span> Live Telemetry Ready</div>
+            <div class="club-status"><span class="status-dot"></span><span class="status-text">No Racing In Progress</span></div>
         </a>
 
-        <a href="/results.html?club=tokoroa" class="club-card">
+        <a href="/results.html?club=tokoroa" class="club-card" data-club="tokoroa">
             <div class="club-icon">🏎️</div>
             <div class="club-name">KartSport Tokoroa</div>
-            <div class="club-status"><span class="live-dot"></span> Live Telemetry Ready</div>
+            <div class="club-status"><span class="status-dot"></span><span class="status-text">No Racing In Progress</span></div>
         </a>
 
-        <a href="/results.html?club=bop" class="club-card">
+        <a href="/results.html?club=bop" class="club-card" data-club="bop">
             <div class="club-icon">🏎️</div>
             <div class="club-name">KartSport Bay of Plenty</div>
-            <div class="club-status"><span class="live-dot"></span> Live Telemetry Ready</div>
+            <div class="club-status"><span class="status-dot"></span><span class="status-text">No Racing In Progress</span></div>
         </a>
 
-        <a href="/results.html?club=ebop" class="club-card">
+        <a href="/results.html?club=ebop" class="club-card" data-club="ebop">
             <div class="club-icon">🏎️</div>
             <div class="club-name">KartSport Eastern Bay of Plenty</div>
-            <div class="club-status"><span class="live-dot"></span> Live Telemetry Ready</div>
+            <div class="club-status"><span class="status-dot"></span><span class="status-text">No Racing In Progress</span></div>
         </a>
 
-        <a href="/results.html?club=taranaki" class="club-card">
+        <a href="/results.html?club=taranaki" class="club-card" data-club="taranaki">
             <div class="club-icon">🏎️</div>
             <div class="club-name">KartSport Taranaki</div>
-            <div class="club-status"><span class="live-dot"></span> Live Telemetry Ready</div>
+            <div class="club-status"><span class="status-dot"></span><span class="status-text">No Racing In Progress</span></div>
         </a>
 
-        <a href="/results.html?club=manawatu" class="club-card">
+        <a href="/results.html?club=manawatu" class="club-card" data-club="manawatu">
             <div class="club-icon">🏎️</div>
             <div class="club-name">KartSport Manawatu</div>
-            <div class="club-status"><span class="live-dot"></span> Live Telemetry Ready</div>
+            <div class="club-status"><span class="status-dot"></span><span class="status-text">No Racing In Progress</span></div>
         </a>
 
-        <a href="/results.html?club=wellington" class="club-card">
+        <a href="/results.html?club=wellington" class="club-card" data-club="wellington">
             <div class="club-icon">🏎️</div>
             <div class="club-name">KartSport Wellington</div>
-            <div class="club-status"><span class="live-dot"></span> Live Telemetry Ready</div>
+            <div class="club-status"><span class="status-dot"></span><span class="status-text">No Racing In Progress</span></div>
         </a>
     </div>
 
     <footer>
         Powered by KartSport Live Timing & Telemetry Engine
     </footer>
+
+    <script>
+        const socket = io();
+
+        function setClubStatus(clubId, isLive) {
+            const card = document.querySelector(`.club-card[data-club="${clubId}"]`);
+            if (card) {
+                const statusContainer = card.querySelector('.club-status');
+                const statusText = card.querySelector('.status-text');
+
+                if (isLive) {
+                    statusContainer.classList.add('live');
+                    statusText.textContent = 'Live Telemetry Active';
+                } else {
+                    statusContainer.classList.remove('live');
+                    statusText.textContent = 'No Racing In Progress';
+                }
+            }
+        }
+
+        // Fetch initial statuses
+        fetch('/api/clubs/status')
+            .then(res => res.json())
+            .then(data => {
+                Object.keys(data).forEach(clubId => {
+                    setClubStatus(clubId, data[clubId]);
+                });
+            });
+
+        // Listen for real-time status updates
+        socket.on('clubStatusUpdate', (data) => {
+            setClubStatus(data.clubId, data.isLive);
+        });
+    </script>
 
 </body>
 </html>
