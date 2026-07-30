@@ -28,6 +28,16 @@
         .status-badge { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; background: rgba(46, 164, 79, 0.15); border: 1px solid var(--accent-green); padding: 6px 12px; border-radius: 20px; color: var(--accent-green); }
         .status-dot { width: 8px; height: 8px; border-radius: 50%; background-color: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); }
 
+        /* Toolbar & Controls */
+        .toolbar { padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; background-color: rgba(22, 27, 34, 0.5); border-bottom: 1px solid var(--border-color); }
+        .nav-buttons { display: flex; gap: 10px; }
+        .btn-nav { background: var(--panel-bg); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s; }
+        .btn-nav.active { background: var(--accent-red); border-color: var(--accent-red); color: #fff; }
+        .btn-nav:hover:not(.active) { border-color: var(--text-muted); }
+
+        .select-group { display: flex; gap: 10px; }
+        select { background: var(--panel-bg); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 6px; font-size: 0.9rem; outline: none; }
+
         /* Main Layout */
         .container { display: grid; grid-template-columns: 1fr 340px; gap: 20px; padding: 20px; flex: 1; max-width: 1600px; margin: 0 auto; width: 100%; }
         
@@ -84,6 +94,22 @@
             <span id="connectionText">Live • Connected</span>
         </div>
     </header>
+
+    <!-- Navigation & Filter Toolbar -->
+    <div class="toolbar">
+        <div class="nav-buttons">
+            <button class="btn-nav active" id="btnLive">🚨 Live Telemetry</button>
+            <button class="btn-nav" id="btnStandings">🏆 Day Points Standings</button>
+        </div>
+        <div class="select-group">
+            <select id="classSelect">
+                <option value="">-- Select Class --</option>
+            </select>
+            <select id="heatSelect">
+                <option value="">-- Select Heat / Race --</option>
+            </select>
+        </div>
+    </div>
 
     <div class="container">
         <!-- Main Timing Board -->
@@ -148,6 +174,20 @@
 
         document.getElementById('clubTitle').textContent = clubNames[clubId] || `KartSport ${clubId.toUpperCase()}`;
 
+        // View toggle buttons
+        const btnLive = document.getElementById('btnLive');
+        const btnStandings = document.getElementById('btnStandings');
+
+        btnLive.addEventListener('click', () => {
+            btnLive.classList.add('active');
+            btnStandings.classList.remove('active');
+        });
+
+        btnStandings.addEventListener('click', () => {
+            btnStandings.classList.add('active');
+            btnLive.classList.remove('active');
+        });
+
         // 3. Socket.io Connection & Subscription
         const socket = io();
 
@@ -166,7 +206,7 @@
         socket.on('heatUpdate', (data) => {
             if (!data) return;
 
-            document.getElementById('sessionLabel').textContent = `${data.className || 'Unknown Class'} - ${data.session || 'Heat 1'}`;
+            document.getElementById('sessionLabel').textContent = `${data.className || 'Select Class'} - ${data.session || 'Select Heat / Race'}`;
 
             const tbody = document.getElementById('timingBody');
             if (!data.drivers || data.drivers.length === 0) {
@@ -227,7 +267,6 @@
         function renderPulseCard(event, prepend = true) {
             const feed = document.getElementById('pulseFeed');
             
-            // Remove empty placeholder text if present
             if (feed.children.length === 1 && feed.children[0].tagName === 'DIV' && !feed.children[0].classList.contains('pulse-card')) {
                 feed.innerHTML = '';
             }
@@ -248,7 +287,6 @@
                 feed.appendChild(card);
             }
 
-            // Keep feed max 20 items
             while (feed.children.length > 20) {
                 feed.removeChild(feed.lastChild);
             }
