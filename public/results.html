@@ -13,6 +13,8 @@
             --accent-red: #e63946;
             --accent-green: #2ea44f;
             --accent-gold: #ffd700;
+            --accent-silver: #c0c0c0;
+            --accent-bronze: #cd7f32;
             --text-main: #f0f6fc;
             --text-muted: #8b949e;
         }
@@ -80,6 +82,19 @@
         .session-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color); }
         .session-title { font-size: 1.2rem; font-weight: 700; color: var(--accent-gold); }
 
+        /* Podium Showcase Card */
+        .podium-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px; }
+        .podium-card { background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; text-align: center; }
+        .podium-card.p1 { border-color: var(--accent-gold); box-shadow: 0 0 12px rgba(255, 215, 0, 0.15); }
+        .podium-card.p2 { border-color: var(--accent-silver); }
+        .podium-card.p3 { border-color: var(--accent-bronze); }
+        .podium-place { font-size: 0.8rem; font-weight: 800; text-transform: uppercase; margin-bottom: 4px; }
+        .p1 .podium-place { color: var(--accent-gold); }
+        .p2 .podium-place { color: var(--accent-silver); }
+        .p3 .podium-place { color: var(--accent-bronze); }
+        .podium-driver { font-size: 1.1rem; font-weight: 700; margin-bottom: 2px; }
+        .podium-pts { font-size: 0.85rem; color: var(--text-muted); }
+
         /* Table Design */
         .timing-table { width: 100%; border-collapse: collapse; text-align: left; }
         .timing-table th { padding: 12px; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; border-bottom: 1px solid var(--border-color); }
@@ -91,7 +106,8 @@
         .pos-num { font-weight: 800; font-size: 1.1rem; min-width: 24px; }
 
         .kart-num { font-weight: 700; color: var(--accent-gold); background: rgba(255, 215, 0, 0.1); padding: 4px 8px; border-radius: 4px; display: inline-block; }
-        
+        .total-pts { font-weight: 800; color: var(--accent-gold); font-size: 1.05rem; }
+
         /* Delta Badges */
         .delta { font-weight: 700; font-size: 0.75rem; padding: 2px 5px; border-radius: 4px; display: inline-block; }
         .delta.up { color: var(--accent-green); background: rgba(46, 164, 79, 0.15); }
@@ -139,10 +155,10 @@
         </div>
         <div class="select-group">
             <select id="classSelect">
-                <option value="">-- Select Class --</option>
+                <option value="ALL">-- Select Class --</option>
             </select>
             <select id="heatSelect">
-                <option value="">-- Select Heat / Race --</option>
+                <option value="ALL">-- Select Heat / Race --</option>
             </select>
         </div>
     </div>
@@ -178,22 +194,45 @@
                 </table>
             </div>
 
-            <!-- View 2: Day Points Standings Table -->
+            <!-- View 2: Day Points Standings View (per Class + Podium) -->
             <div id="standingsView" class="view-panel">
+                
+                <!-- Day Podium Header (Renders when points exist) -->
+                <div id="podiumHeader" class="podium-container" style="display: none;">
+                    <div class="podium-card p2">
+                        <div class="podium-place">🥈 2nd Place</div>
+                        <div class="podium-driver" id="p2Name">-</div>
+                        <div class="podium-pts" id="p2Pts">0 pts</div>
+                    </div>
+                    <div class="podium-card p1">
+                        <div class="podium-place">🏆 Day Champion (1st)</div>
+                        <div class="podium-driver" id="p1Name">-</div>
+                        <div class="podium-pts" id="p1Pts">0 pts</div>
+                    </div>
+                    <div class="podium-card p3">
+                        <div class="podium-place">🥉 3rd Place</div>
+                        <div class="podium-driver" id="p3Name">-</div>
+                        <div class="podium-pts" id="p3Pts">0 pts</div>
+                    </div>
+                </div>
+
                 <table class="timing-table">
                     <thead>
                         <tr>
                             <th>Pos</th>
                             <th>Kart #</th>
                             <th>Driver</th>
-                            <th>Class</th>
-                            <th>Points</th>
+                            <th>H1</th>
+                            <th>H2</th>
+                            <th>H3</th>
+                            <th>Final</th>
+                            <th>Total Pts</th>
                         </tr>
                     </thead>
                     <tbody id="standingsBody">
                         <tr>
-                            <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 40px;">
-                                Day Points Standings will be updated as heats complete.
+                            <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 40px;">
+                                Select a class above to view Day Points Standings.
                             </td>
                         </tr>
                     </tbody>
@@ -216,11 +255,11 @@
     </div>
 
     <script>
-        // 1. Get Club ID from URL Query String (?club=auckland)
+        // 1. URL Query Params
         const urlParams = new URLSearchParams(window.location.search);
         const clubId = urlParams.get('club') || 'tokoroa';
 
-        // 2. Club Title Mapping
+        // 2. Club Names
         const clubNames = {
             'whangarei': 'KartSport Whangarei',
             'auckland': 'KartSport Auckland Mt Wellington',
@@ -235,7 +274,7 @@
 
         document.getElementById('clubTitle').textContent = clubNames[clubId] || `KartSport ${clubId.toUpperCase()}`;
 
-        // View toggle functionality
+        // View Switches
         const btnLive = document.getElementById('btnLive');
         const btnStandings = document.getElementById('btnStandings');
         const liveView = document.getElementById('liveView');
@@ -253,25 +292,16 @@
             btnLive.classList.remove('active');
             standingsView.classList.add('active');
             liveView.classList.remove('active');
+            renderStandings();
         });
 
-        // 3. Socket.io Connection & Subscription
+        // 3. Socket Connection
         const socket = io();
 
         socket.on('connect', () => {
-            console.log('✅ Connected to WebSocket Server');
             socket.emit('joinClub', clubId);
         });
 
-        socket.on('disconnect', () => {
-            console.warn('⚠️ Disconnected from server');
-            const badge = document.getElementById('statusBadge');
-            const text = document.getElementById('connectionText');
-            badge.classList.remove('live');
-            text.textContent = 'No Racing In Progress';
-        });
-
-        // 4. Dynamic Status (Green when streaming / Red when offline)
         socket.on('orbitStatus', (data) => {
             const badge = document.getElementById('statusBadge');
             const text = document.getElementById('connectionText');
@@ -285,29 +315,26 @@
             }
         });
 
-        // 5. Populate Class & Heat Select Dropdowns
+        // 4. Standings & Class Filter Data Engine
+        let dayStandingsStore = {}; // Holds points structured by class
         const classSelect = document.getElementById('classSelect');
         const heatSelect = document.getElementById('heatSelect');
 
-        function updateDropdowns(className, session) {
-            if (className && !Array.from(classSelect.options).some(o => o.value === className)) {
+        classSelect.addEventListener('change', () => {
+            renderStandings();
+        });
+
+        function addClassOption(className) {
+            if (!className) return;
+            if (!Array.from(classSelect.options).some(o => o.value === className)) {
                 const opt = document.createElement('option');
                 opt.value = className;
                 opt.textContent = className;
                 classSelect.appendChild(opt);
-                classSelect.value = className;
-            }
-
-            if (session && !Array.from(heatSelect.options).some(o => o.value === session)) {
-                const opt = document.createElement('option');
-                opt.value = session;
-                opt.textContent = session;
-                heatSelect.appendChild(opt);
-                heatSelect.value = session;
             }
         }
 
-        // 6. Update Live Timing Board
+        // 5. Update Live Telemetry Board & Points Engine
         socket.on('heatUpdate', (data) => {
             if (!data) return;
 
@@ -315,30 +342,22 @@
             const session = data.session || 'Select Heat / Race';
 
             document.getElementById('sessionLabel').textContent = `${className} - ${session}`;
-            updateDropdowns(className, session);
+            addClassOption(className);
 
             const tbody = document.getElementById('timingBody');
             if (!data.drivers || data.drivers.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 40px;">
-                            No active drivers on track for this session.
-                        </td>
-                    </tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 40px;">No active drivers on track for this session.</td></tr>`;
                 return;
             }
 
             tbody.innerHTML = data.drivers.map((d, index) => {
                 const currentPos = index + 1;
                 const startPos = d.startPos || currentPos;
-                const diff = startPos - currentPos; // Positive = gained positions
+                const diff = startPos - currentPos;
 
                 let deltaHtml = '<span class="delta same">-</span>';
-                if (diff > 0) {
-                    deltaHtml = `<span class="delta up">▲${diff}</span>`;
-                } else if (diff < 0) {
-                    deltaHtml = `<span class="delta down">▼${Math.abs(diff)}</span>`;
-                }
+                if (diff > 0) deltaHtml = `<span class="delta up">▲${diff}</span>`;
+                else if (diff < 0) deltaHtml = `<span class="delta down">▼${Math.abs(diff)}</span>`;
 
                 return `
                     <tr>
@@ -359,11 +378,72 @@
             }).join('');
         });
 
-        // 7. Update Track Pulse Highlights
-        socket.on('pulseEvent', (event) => {
-            renderPulseCard(event, true);
+        // 6. Receive Day Points Data from Orbits / Server
+        socket.on('standingsUpdate', (standingsData) => {
+            if (standingsData) {
+                dayStandingsStore = standingsData;
+                Object.keys(standingsData).forEach(cls => addClassOption(cls));
+                renderStandings();
+            }
         });
 
+        function renderStandings() {
+            const selectedClass = classSelect.value;
+            const standingsBody = document.getElementById('standingsBody');
+            const podiumHeader = document.getElementById('podiumHeader');
+
+            if (!dayStandingsStore || Object.keys(dayStandingsStore).length === 0) {
+                standingsBody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 40px;">No day points recorded yet. Points update as heats finish.</td></tr>`;
+                podiumHeader.style.display = 'none';
+                return;
+            }
+
+            // Find drivers for the selected class (or default to the first class)
+            const activeClassKey = (selectedClass && selectedClass !== 'ALL') ? selectedClass : Object.keys(dayStandingsStore)[0];
+            const classDrivers = dayStandingsStore[activeClassKey] || [];
+
+            if (classDrivers.length === 0) {
+                standingsBody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 40px;">Select a class to view standings.</td></tr>`;
+                podiumHeader.style.display = 'none';
+                return;
+            }
+
+            // Sort drivers by Total Points (Ascending or Descending based on Orbits scoring rules)
+            classDrivers.sort((a, b) => b.totalPts - a.totalPts);
+
+            // Render Podium Card Header
+            if (classDrivers.length >= 1) {
+                podiumHeader.style.display = 'grid';
+                document.getElementById('p1Name').textContent = `#${classDrivers[0].number} ${classDrivers[0].name}`;
+                document.getElementById('p1Pts').textContent = `${classDrivers[0].totalPts} pts`;
+
+                if (classDrivers[1]) {
+                    document.getElementById('p2Name').textContent = `#${classDrivers[1].number} ${classDrivers[1].name}`;
+                    document.getElementById('p2Pts').textContent = `${classDrivers[1].totalPts} pts`;
+                }
+                if (classDrivers[2]) {
+                    document.getElementById('p3Name').textContent = `#${classDrivers[2].number} ${classDrivers[2].name}`;
+                    document.getElementById('p3Pts').textContent = `${classDrivers[2].totalPts} pts`;
+                }
+            }
+
+            // Render Standings Table Rows
+            standingsBody.innerHTML = classDrivers.map((d, idx) => `
+                <tr>
+                    <td style="font-weight: 800;">${idx + 1}</td>
+                    <td><span class="kart-num">#${d.number}</span></td>
+                    <td><strong>${d.name}</strong></td>
+                    <td>${d.h1 || '-'}</td>
+                    <td>${d.h2 || '-'}</td>
+                    <td>${d.h3 || '-'}</td>
+                    <td>${d.final || '-'}</td>
+                    <td class="total-pts">${d.totalPts || 0}</td>
+                </tr>
+            `).join('');
+        }
+
+        // 7. Track Pulse Highlights Feed
+        socket.on('pulseEvent', (event) => renderPulseCard(event, true));
         socket.on('pulseHistory', (history) => {
             const feed = document.getElementById('pulseFeed');
             feed.innerHTML = '';
@@ -374,13 +454,8 @@
             history.forEach(item => renderPulseCard(item, false));
         });
 
-        socket.on('clearPulse', () => {
-            document.getElementById('pulseFeed').innerHTML = `<div style="color: var(--text-muted); font-size: 0.85rem; text-align: center; padding: 20px;">Waiting for live track events...</div>`;
-        });
-
         function renderPulseCard(event, prepend = true) {
             const feed = document.getElementById('pulseFeed');
-            
             if (feed.children.length === 1 && feed.children[0].tagName === 'DIV' && !feed.children[0].classList.contains('pulse-card')) {
                 feed.innerHTML = '';
             }
@@ -395,15 +470,10 @@
                 <div class="pulse-text">${event.text || ''}</div>
             `;
 
-            if (prepend) {
-                feed.insertBefore(card, feed.firstChild);
-            } else {
-                feed.appendChild(card);
-            }
+            if (prepend) feed.insertBefore(card, feed.firstChild);
+            else feed.appendChild(card);
 
-            while (feed.children.length > 20) {
-                feed.removeChild(feed.lastChild);
-            }
+            while (feed.children.length > 20) feed.removeChild(feed.lastChild);
         }
     </script>
 </body>
