@@ -16,7 +16,7 @@ title KartSport Timing Bridge Installer
 color 0A
 
 echo ========================================================
-echo        KartSport Live Timing Bridge - Service Setup
+echo        KartLive Race Event Results Bridge - Service Setup
 echo ========================================================
 echo.
 
@@ -27,31 +27,45 @@ cd /d "%~dp0"
 :: STEP 1: SELECT CLUB
 :: ---------------------------------------------------------
 echo Select your Kart Club:
-echo [1] KartSport Whangarei (whangarei)
-echo [2] KartSport Auckland Mt Wellington (auckland)
-echo [3] KartSport Hamilton (hamilton)
-echo [4] KartSport Tokoroa (tokoroa)
-echo [5] KartSport Bay of Plenty (bop)
-echo [6] KartSport Eastern Bay of Plenty (ebop)
-echo [7] KartSport Taranaki (taranaki)
-echo [8] KartSport Manawatu (manawatu)
-echo [9] KartSport Wellington (wellington)
-echo [10] Enter Custom Club ID
+echo [1]  KartSport Whangarei (whangarei)
+echo [2]  KartSport Auckland Mt Wellington (auckland)
+echo [3]  KartSport Hamilton (hamilton)
+echo [4]  KartSport Tokoroa (tokoroa)
+echo [5]  KartSport Rotorua (rotorua)
+echo [6]  KartSport Bay of Plenty (bop)
+echo [7]  KartSport Eastern Bay of Plenty (ebop)
+echo [8]  KartSport Hawkes Bay (hb)
+echo [9]  KartSport Taranaki (taranaki)
+echo [10] KartSport Manawatu (manawatu)
+echo [11] KartSport Wellington (wellington)
+echo [12] KartSport Nelson (nelson)
+echo [13] KartSport Marlborough (marlborough)
+echo [14] KartSport Westland (westland)
+echo [15] KartSport Canterbury (canterbury)
+echo [16] KartSport Southland (southland)
+echo [17] Enter Custom Club ID
 echo.
-set /p CLUB_CHOICE="Enter choice [1-10]: "
+set /p CLUB_CHOICE="Enter choice [1-17]: "
 
 if "%CLUB_CHOICE%"=="1" set SELECTED_CLUB=whangarei
 if "%CLUB_CHOICE%"=="2" set SELECTED_CLUB=auckland
 if "%CLUB_CHOICE%"=="3" set SELECTED_CLUB=hamilton
 if "%CLUB_CHOICE%"=="4" set SELECTED_CLUB=tokoroa
-if "%CLUB_CHOICE%"=="5" set SELECTED_CLUB=bop
-if "%CLUB_CHOICE%"=="6" set SELECTED_CLUB=ebop
-if "%CLUB_CHOICE%"=="7" set SELECTED_CLUB=taranaki
-if "%CLUB_CHOICE%"=="8" set SELECTED_CLUB=manawatu
-if "%CLUB_CHOICE%"=="9" set SELECTED_CLUB=wellington
-if "%CLUB_CHOICE%"=="10" (
+if "%CLUB_CHOICE%"=="5" set SELECTED_CLUB=rotorua
+if "%CLUB_CHOICE%"=="6" set SELECTED_CLUB=bop
+if "%CLUB_CHOICE%"=="7" set SELECTED_CLUB=ebop
+if "%CLUB_CHOICE%"=="8" set SELECTED_CLUB=hb
+if "%CLUB_CHOICE%"=="9" set SELECTED_CLUB=taranaki
+if "%CLUB_CHOICE%"=="10" set SELECTED_CLUB=manawatu
+if "%CLUB_CHOICE%"=="11" set SELECTED_CLUB=wellington
+if "%CLUB_CHOICE%"=="12" set SELECTED_CLUB=nelson
+if "%CLUB_CHOICE%"=="13" set SELECTED_CLUB=marlborough
+if "%CLUB_CHOICE%"=="14" set SELECTED_CLUB=westland
+if "%CLUB_CHOICE%"=="15" set SELECTED_CLUB=canterbury
+if "%CLUB_CHOICE%"=="16" set SELECTED_CLUB=southland
+if "%CLUB_CHOICE%"=="17" (
     echo.
-    set /p SELECTED_CLUB="Type custom club slug (lowercase, e.g. hawkesbay): "
+    set /p SELECTED_CLUB="Type custom club slug (lowercase, e.g. customclub): "
 )
 
 if "%SELECTED_CLUB%"=="" set SELECTED_CLUB=tokoroa
