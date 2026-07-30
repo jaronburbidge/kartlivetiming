@@ -3,162 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KartLive Live Timing</title>
-    <script src="/socket.io/socket.io.js"></script>
+    <title>KartSport Live Timing & Results</title>
+    <!-- Import Titillium Web from Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@600&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg-dark: #0d1117;
-            --card-bg: #161b22;
+            --panel-bg: #161b22;
             --border-color: #30363d;
             --accent-red: #e63946;
-            --accent-green: #2ea44f;
             --text-main: #f0f6fc;
             --text-muted: #8b949e;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background-color: var(--bg-dark); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; }
-        
-        .header { text-align: center; margin-bottom: 40px; }
-        .header h1 { font-size: 2.5rem; text-transform: uppercase; color: var(--accent-red); margin-bottom: 8px; font-weight: 900; letter-spacing: 1px; }
-        .header p { color: var(--text-muted); font-size: 1.1rem; }
+        body { background-color: var(--bg-dark); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; justify-content: space-between; }
 
-        .club-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; width: 100%; max-width: 1000px; }
+        header { background-color: var(--panel-bg); border-bottom: 1px solid var(--border-color); padding: 20px; text-align: center; }
+        header h1 { 
+            font-family: 'Titillium Web', sans-serif;
+            font-weight: 600;
+            font-size: 2rem; 
+            text-transform: uppercase; 
+            color: var(--accent-red); 
+            letter-spacing: 1px; 
+        }
+        header p { color: var(--text-muted); font-size: 0.95rem; margin-top: 5px; }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 40px 20px; width: 100%; flex: 1; }
+        .section-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 20px; color: var(--text-main); text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .clubs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
         
         .club-card {
-            background-color: var(--card-bg);
+            background-color: var(--panel-bg);
             border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 24px;
-            text-align: center;
+            border-radius: 8px;
+            padding: 20px;
             text-decoration: none;
             color: var(--text-main);
-            transition: all 0.2s ease-in-out;
             display: flex;
-            flex-direction: column;
+            justify-content: space-between;
             align-items: center;
-            justify-content: center;
-            cursor: pointer;
+            transition: all 0.2s ease;
         }
-
         .club-card:hover {
             border-color: var(--accent-red);
-            transform: translateY(-4px);
-            box-shadow: 0 8px 24px rgba(230, 57, 70, 0.2);
+            transform: translateY(-2px);
+            background-color: rgba(22, 27, 34, 0.8);
         }
+        .club-name { font-weight: 700; font-size: 1rem; }
+        .club-arrow { color: var(--accent-red); font-weight: bold; }
 
-        .club-icon { font-size: 2.2rem; margin-bottom: 10px; }
-        .club-name { font-size: 1.2rem; font-weight: 700; margin-bottom: 8px; }
-        
-        .club-status { font-size: 0.85rem; color: var(--accent-red); display: flex; align-items: center; gap: 6px; font-weight: 600; }
-        .club-status.live { color: var(--accent-green); }
+        footer { text-align: center; padding: 20px; font-size: 0.85rem; color: var(--text-muted); border-top: 1px solid var(--border-color); background-color: var(--panel-bg); }
 
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; background-color: var(--accent-red); box-shadow: 0 0 6px var(--accent-red); }
-        .club-status.live .status-dot { background-color: var(--accent-green); box-shadow: 0 0 6px var(--accent-green); }
-
-        footer { margin-top: 50px; color: var(--text-muted); font-size: 0.85rem; text-align: center; }
+        @media (max-width: 768px) {
+            header h1 { font-size: 1.5rem; }
+            .container { padding: 20px 10px; }
+        }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <h1>🏁 KartSport New Zealand Live Timing 🏁</h1>
-        <p>Select your club below to access live race data and race results</p>
-    </div>
+    <header>
+        <h1>KartSport Live Timing</h1>
+        <p>Select your club to view live race telemetry and day points standings</p>
+    </header>
 
-    <div class="club-grid">
-        <a href="/results.html?club=whangarei" class="club-card" data-club="whangarei">
-            <div class="club-icon">🏎️</div>
-            <div class="club-name">KartSport Whangarei</div>
-            <div class="club-status"><span class="status-dot"></span><span class="status-text">No Racing In Progress</span></div>
-        </a>
-
-        <a href="/results.html?club=auckland" class="club-card" data-club="auckland">
-            <div class="club-icon">🏎️</div>
-            <div class="club-name">KartSport Auckland Mt Wellington</div>
-            <div class="club-status"><span class="status-dot"></span><span class="status-text">No Racing In Progress</span></div>
-        </a>
-
-        <a href="/results.html?club=hamilton" class="club-card" data-club="hamilton">
-            <div class="club-icon">🏎️</div>
-            <div class="club-name">KartSport Hamilton</div>
-            <div class="club-status"><span class="status-dot"></span><span class="status-text">No Racing In Progress</span></div>
-        </a>
-
-        <a href="/results.html?club=tokoroa" class="club-card" data-club="tokoroa">
-            <div class="club-icon">🏎️</div>
-            <div class="club-name">KartSport Tokoroa</div>
-            <div class="club-status"><span class="status-dot"></span><span class="status-text">No Racing In Progress</span></div>
-        </a>
-
-        <a href="/results.html?club=bop" class="club-card" data-club="bop">
-            <div class="club-icon">🏎️</div>
-            <div class="club-name">KartSport Bay of Plenty</div>
-            <div class="club-status"><span class="status-dot"></span><span class="status-text">No Racing In Progress</span></div>
-        </a>
-
-        <a href="/results.html?club=ebop" class="club-card" data-club="ebop">
-            <div class="club-icon">🏎️</div>
-            <div class="club-name">KartSport Eastern Bay of Plenty</div>
-            <div class="club-status"><span class="status-dot"></span><span class="status-text">No Racing In Progress</span></div>
-        </a>
-
-        <a href="/results.html?club=taranaki" class="club-card" data-club="taranaki">
-            <div class="club-icon">🏎️</div>
-            <div class="club-name">KartSport Taranaki</div>
-            <div class="club-status"><span class="status-dot"></span><span class="status-text">No Racing In Progress</span></div>
-        </a>
-
-        <a href="/results.html?club=manawatu" class="club-card" data-club="manawatu">
-            <div class="club-icon">🏎️</div>
-            <div class="club-name">KartSport Manawatu</div>
-            <div class="club-status"><span class="status-dot"></span><span class="status-text">No Racing In Progress</span></div>
-        </a>
-
-        <a href="/results.html?club=wellington" class="club-card" data-club="wellington">
-            <div class="club-icon">🏎️</div>
-            <div class="club-name">KartSport Wellington</div>
-            <div class="club-status"><span class="status-dot"></span><span class="status-text">No Racing In Progress</span></div>
-        </a>
+    <div class="container">
+        <div class="section-title">Select Racing Club</div>
+        <div class="clubs-grid">
+            <a href="/results.html?club=whangarei" class="club-card">
+                <span class="club-name">KartSport Whangarei</span>
+                <span class="club-arrow">&rarr;</span>
+            </a>
+            <a href="/results.html?club=auckland" class="club-card">
+                <span class="club-name">KartSport Auckland</span>
+                <span class="club-arrow">&rarr;</span>
+            </a>
+            <a href="/results.html?club=hamilton" class="club-card">
+                <span class="club-name">KartSport Hamilton</span>
+                <span class="club-arrow">&rarr;</span>
+            </a>
+            <a href="/results.html?club=tokoroa" class="club-card">
+                <span class="club-name">KartSport Tokoroa</span>
+                <span class="club-arrow">&rarr;</span>
+            </a>
+            <a href="/results.html?club=bop" class="club-card">
+                <span class="club-name">KartSport Bay of Plenty</span>
+                <span class="club-arrow">&rarr;</span>
+            </a>
+            <a href="/results.html?club=ebop" class="club-card">
+                <span class="club-name">KartSport Eastern Bay of Plenty</span>
+                <span class="club-arrow">&rarr;</span>
+            </a>
+            <a href="/results.html?club=taranaki" class="club-card">
+                <span class="club-name">KartSport Taranaki</span>
+                <span class="club-arrow">&rarr;</span>
+            </a>
+            <a href="/results.html?club=manawatu" class="club-card">
+                <span class="club-name">KartSport Manawatu</span>
+                <span class="club-arrow">&rarr;</span>
+            </a>
+            <a href="/results.html?club=wellington" class="club-card">
+                <span class="club-name">KartSport Wellington</span>
+                <span class="club-arrow">&rarr;</span>
+            </a>
+        </div>
     </div>
 
     <footer>
-        Copyright 2026 | Powered by KartLive Live Timing & Telemetry Engine
+        &copy; KartSport New Zealand Live Timing Platform
     </footer>
-
-    <script>
-        const socket = io();
-
-        function setClubStatus(clubId, isLive) {
-            const card = document.querySelector(`.club-card[data-club="${clubId}"]`);
-            if (card) {
-                const statusContainer = card.querySelector('.club-status');
-                const statusText = card.querySelector('.status-text');
-
-                if (isLive) {
-                    statusContainer.classList.add('live');
-                    statusText.textContent = 'Live Telemetry Active';
-                } else {
-                    statusContainer.classList.remove('live');
-                    statusText.textContent = 'No Racing In Progress';
-                }
-            }
-        }
-
-        // Fetch initial statuses
-        fetch('/api/clubs/status')
-            .then(res => res.json())
-            .then(data => {
-                Object.keys(data).forEach(clubId => {
-                    setClubStatus(clubId, data[clubId]);
-                });
-            });
-
-        // Listen for real-time status updates
-        socket.on('clubStatusUpdate', (data) => {
-            setClubStatus(data.clubId, data.isLive);
-        });
-    </script>
 
 </body>
 </html>
