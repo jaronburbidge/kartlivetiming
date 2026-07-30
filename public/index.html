@@ -108,8 +108,36 @@
     </header>
 
     <div class="container">
-        <div class="section-title">Select Racing Club</div>
+        <div class="section-title">Select Kart Club</div>
         <div class="clubs-grid" id="clubsGrid">
+            <a href="/results.html?club=whangarei" class="club-card" data-club="whangarei">
+                <div class="club-info">
+                    <span class="club-name">KartSport Whangarei</span>
+                    <div class="racing-badge"><span class="racing-dot"></span>Racing in Progress</div>
+                </div>
+                <span class="club-arrow">&rarr;</span>
+            </a>
+            <a href="/results.html?club=auckland" class="club-card" data-club="auckland">
+                <div class="club-info">
+                    <span class="club-name">KartSport Auckland Mt Wellington</span>
+                    <div class="racing-badge"><span class="racing-dot"></span>Racing in Progress</div>
+                </div>
+                <span class="club-arrow">&rarr;</span>
+            </a>
+            <a href="/results.html?club=hamilton" class="club-card" data-club="hamilton">
+                <div class="club-info">
+                    <span class="club-name">KartSport Hamilton</span>
+                    <div class="racing-badge"><span class="racing-dot"></span>Racing in Progress</div>
+                </div>
+                <span class="club-arrow">&rarr;</span>
+            </a>
+            <a href="/results.html?club=tokoroa" class="club-card" data-club="tokoroa">
+                <div class="club-info">
+                    <span class="club-name">KartSport Tokoroa</span>
+                    <div class="racing-badge"><span class="racing-dot"></span>Racing in Progress</div>
+                </div>
+                <span class="club-arrow">&rarr;</span>
+            </a>
             <a href="/results.html?club=rotorua" class="club-card" data-club="rotorua">
                 <div class="club-info">
                     <span class="club-name">KartSport Rotorua</span>
@@ -117,9 +145,23 @@
                 </div>
                 <span class="club-arrow">&rarr;</span>
             </a>
+            <a href="/results.html?club=bop" class="club-card" data-club="bop">
+                <div class="club-info">
+                    <span class="club-name">KartSport Bay of Plenty</span>
+                    <div class="racing-badge"><span class="racing-dot"></span>Racing in Progress</div>
+                </div>
+                <span class="club-arrow">&rarr;</span>
+            </a>
+            <a href="/results.html?club=ebop" class="club-card" data-club="ebop">
+                <div class="club-info">
+                    <span class="club-name">KartSport Eastern Bay of Plenty</span>
+                    <div class="racing-badge"><span class="racing-dot"></span>Racing in Progress</div>
+                </div>
+                <span class="club-arrow">&rarr;</span>
+            </a>
             <a href="/results.html?club=hb" class="club-card" data-club="hb">
                 <div class="club-info">
-                    <span class="club-name">KartSport Hawke's Bay</span>
+                    <span class="club-name">KartSport Hawkes Bay</span>
                     <div class="racing-badge"><span class="racing-dot"></span>Racing in Progress</div>
                 </div>
                 <span class="club-arrow">&rarr;</span>
@@ -127,6 +169,20 @@
             <a href="/results.html?club=taranaki" class="club-card" data-club="taranaki">
                 <div class="club-info">
                     <span class="club-name">KartSport Taranaki</span>
+                    <div class="racing-badge"><span class="racing-dot"></span>Racing in Progress</div>
+                </div>
+                <span class="club-arrow">&rarr;</span>
+            </a>
+            <a href="/results.html?club=manawatu" class="club-card" data-club="manawatu">
+                <div class="club-info">
+                    <span class="club-name">KartSport Manawatu</span>
+                    <div class="racing-badge"><span class="racing-dot"></span>Racing in Progress</div>
+                </div>
+                <span class="club-arrow">&rarr;</span>
+            </a>
+            <a href="/results.html?club=wellington" class="club-card" data-club="wellington">
+                <div class="club-info">
+                    <span class="club-name">KartSport Wellington</span>
                     <div class="racing-badge"><span class="racing-dot"></span>Racing in Progress</div>
                 </div>
                 <span class="club-arrow">&rarr;</span>
@@ -175,7 +231,11 @@
 
     <script>
         const socket = io();
-        const clubs = ['rotorua', 'hb', 'taranaki', 'nelson', 'marlborough', 'westland', 'canterbury', 'southland'];
+        const clubs = [
+            'whangarei', 'auckland', 'hamilton', 'tokoroa', 'rotorua', 
+            'bop', 'ebop', 'hb', 'taranaki', 'manawatu', 'wellington', 
+            'nelson', 'marlborough', 'westland', 'canterbury', 'southland'
+        ];
 
         clubs.forEach(clubId => {
             socket.emit('joinClub', clubId);
