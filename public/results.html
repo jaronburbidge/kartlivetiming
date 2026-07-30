@@ -1,100 +1,269 @@
-<script>
-    // ... (keep your existing urlParams, socket connection, and tab switching logic) ...
-
-    let dayStandingsStore = {};
-    const classSelect = document.getElementById('classSelect');
-
-    classSelect.addEventListener('change', () => {
-        renderDynamicStandings();
-    });
-
-    function addClassOption(className) {
-        if (!className) return;
-        if (!Array.from(classSelect.options).some(o => o.value === className)) {
-            const opt = document.createElement('option');
-            opt.value = className;
-            opt.textContent = className;
-            classSelect.appendChild(opt);
-        }
-    }
-
-    // Listen for incoming standings / results updates from the bridge/backend
-    socket.on('standingsUpdate', (standingsData) => {
-        if (standingsData) {
-            dayStandingsStore = standingsData;
-            Object.keys(standingsData).forEach(cls => addClassOption(cls));
-            renderDynamicStandings();
-        }
-    });
-
-    /**
-     * Dynamically discovers all completed sessions (e.g., Qualifying, Heats, Prefinal, Final)
-     * and builds table headers/rows with an overall Total Points summary column.
-     */
-    function renderDynamicStandings() {
-        const selectedClass = classSelect.value;
-        const standingsBody = document.getElementById('standingsBody');
-        const timingTableHead = document.querySelector('#standingsView .timing-table thead');
-
-        if (!dayStandingsStore || Object.keys(dayStandingsStore).length === 0) {
-            standingsBody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--text-muted); padding: 40px;">No day points recorded yet. Points update as heats finish.</td></tr>`;
-            return;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KartSport Live Timing - Results & Standings</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-color: #38bdf8;
+            --accent-glow: rgba(56, 189, 248, 0.2);
+            --border-color: #334155;
         }
 
-        const activeClassKey = (selectedClass && selectedClass !== 'ALL') ? selectedClass : Object.keys(dayStandingsStore)[0];
-        const classDrivers = dayStandingsStore[activeClassKey] || [];
-
-        if (classDrivers.length === 0) {
-            standingsBody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--text-muted); padding: 40px;">Select a class to view standings.</td></tr>`;
-            return;
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
         }
 
-        // 1. Discover all unique session types sent by Orbits dynamically for this class
-        const sessionSet = new Set();
-        classDrivers.forEach(driver => {
-            if (driver.sessions) {
-                Object.keys(driver.sessions).forEach(sName => sessionSet.add(sName));
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            color: var(--text-main);
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        select {
+            background-color: var(--card-bg);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        table.timing-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.95rem;
+        }
+
+        table.timing-table th, 
+        table.timing-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        table.timing-table th {
+            background-color: rgba(255, 255, 255, 0.03);
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.05em;
+        }
+
+        table.timing-table tr:hover td {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        .kart-num {
+            background-color: var(--accent-glow);
+            color: var(--accent-color);
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-family: monospace;
+        }
+
+        .total-pts {
+            font-weight: bold;
+            color: var(--accent-color);
+            font-size: 1.05rem;
+        }
+
+        .points-sub {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>🏁 Race Results & Standings</h1>
+            <div class="controls">
+                <label for="classSelect">Class:</label>
+                <select id="classSelect">
+                    <option value="ALL">All Classes</option>
+                </select>
+            </div>
+        </header>
+
+        <div class="card">
+            <div class="table-responsive">
+                <table class="timing-table" id="standingsView">
+                    <thead>
+                        <tr>
+                            <th>Pos</th>
+                            <th>Kart #</th>
+                            <th>Driver</th>
+                            <th>Total Pts</th>
+                        </tr>
+                    </thead>
+                    <tbody id="standingsBody">
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 40px;">
+                                Waiting for timing data connection...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let dayStandingsStore = {};
+        const classSelect = document.getElementById('classSelect');
+
+        if (classSelect) {
+            classSelect.addEventListener('change', () => {
+                renderDynamicStandings();
+            });
+        }
+
+        function addClassOption(className) {
+            if (!className || !classSelect) return;
+            if (!Array.from(classSelect.options).some(o => o.value === className)) {
+                const opt = document.createElement('option');
+                opt.value = className;
+                opt.textContent = className;
+                classSelect.appendChild(opt);
+            }
+        }
+
+        // Listen for incoming standings / results updates from the server
+        socket.on('standingsUpdate', (standingsData) => {
+            console.log("Received standingsUpdate data:", standingsData);
+            if (standingsData) {
+                dayStandingsStore = standingsData;
+                Object.keys(standingsData).forEach(cls => addClassOption(cls));
+                renderDynamicStandings();
             }
         });
-        const completedSessions = Array.from(sessionSet); // e.g. ["Qualifying", "Heat 1", "Heat 2", "Final"]
 
-        // 2. Build Dynamic Table Header matching whatever Orbits sent
-        let headerHTML = `<tr><th>Pos</th><th>Kart #</th><th>Driver</th>`;
-        completedSessions.forEach(session => {
-            headerHTML += `<th>${session}</th>`;
-        });
-        headerHTML += `<th>Total Pts</th></tr>`;
-        timingTableHead.innerHTML = headerHTML;
+        /**
+         * Dynamically discovers all completed sessions (e.g., Qualifying, Heat 1, Final)
+         * and builds dynamic table headers, heat columns, and overall total points.
+         */
+        function renderDynamicStandings() {
+            const standingsBody = document.getElementById('standingsBody');
+            const timingTableHead = document.querySelector('#standingsView thead');
 
-        // 3. Calculate points and sort drivers by overall total points summary descending
-        const processedRows = classDrivers.map(driver => {
-            let totalPts = 0;
-            const sessionCells = completedSessions.map(session => {
-                const sData = driver.sessions?.[session] || { position: '-', points: 0 };
-                const pts = sData.points || 0;
-                totalPts += pts;
-                return `<td>${sData.position} <span style="font-size:0.8rem; color:var(--text-muted);">(${pts}p)</span></td>`;
-            }).join('');
+            if (!standingsBody) return;
 
-            return {
-                number: driver.number,
-                name: driver.name,
-                sessionCells,
-                totalPts
-            };
-        });
+            if (!dayStandingsStore || Object.keys(dayStandingsStore).length === 0) {
+                standingsBody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--text-muted); padding: 40px;">No day points recorded yet. Points update as heats finish.</td></tr>`;
+                return;
+            }
 
-        processedRows.sort((a, b) => b.totalPts - a.totalPts);
+            const selectedClass = classSelect ? classSelect.value : '';
+            const activeClassKey = (selectedClass && selectedClass !== 'ALL') ? selectedClass : Object.keys(dayStandingsStore)[0];
+            const classDrivers = dayStandingsStore[activeClassKey] || [];
 
-        // 4. Render Table Body
-        standingsBody.innerHTML = processedRows.map((d, idx) => `
-            <tr>
-                <td style="font-weight: 800;">${idx + 1}</td>
-                <td><span class="kart-num">#${d.number}</span></td>
-                <td><strong>${d.name}</strong></td>
-                ${d.sessionCells}
-                <td class="total-pts">${d.totalPts} pts</td>
-            </tr>
-        `).join('');
-    }
-</script>
+            if (!Array.isArray(classDrivers) || classDrivers.length === 0) {
+                standingsBody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--text-muted); padding: 40px;">No drivers found for this class.</td></tr>`;
+                return;
+            }
+
+            // 1. Discover all unique session types sent by Orbits dynamically
+            const sessionSet = new Set();
+            classDrivers.forEach(driver => {
+                if (driver.sessions && typeof driver.sessions === 'object') {
+                    Object.keys(driver.sessions).forEach(sName => sessionSet.add(sName));
+                } else if (driver.heats && typeof driver.heats === 'object') {
+                    Object.keys(driver.heats).forEach(sName => sessionSet.add(sName));
+                }
+            });
+            const completedSessions = Array.from(sessionSet);
+
+            // 2. Build Dynamic Table Header matching whatever Orbits/Heats exist
+            if (timingTableHead) {
+                let headerHTML = `<tr><th>Pos</th><th>Kart #</th><th>Driver</th>`;
+                completedSessions.forEach(session => {
+                    headerHTML += `<th>${session}</th>`;
+                });
+                headerHTML += `<th>Total Pts</th></tr>`;
+                timingTableHead.innerHTML = headerHTML;
+            }
+
+            // 3. Calculate points and sort drivers by overall total points descending
+            const processedRows = classDrivers.map(driver => {
+                let totalPts = 0;
+                const sessionCells = completedSessions.map(session => {
+                    const sData = driver.sessions?.[session] || driver.heats?.[session] || { position: '-', points: 0 };
+                    const pts = Number(sData.points !== undefined ? sData.points : 0);
+                    const pos = sData.position !== undefined ? sData.position : '-';
+                    
+                    totalPts += isNaN(pts) ? 0 : pts;
+                    return `<td>${pos} <span class="points-sub">(${pts}p)</span></td>`;
+                }).join('');
+
+                return {
+                    number: driver.number || driver.kartNumber || '0',
+                    name: driver.name || driver.driverName || 'Unknown',
+                    sessionCells,
+                    totalPts
+                };
+            });
+
+            processedRows.sort((a, b) => b.totalPts - a.totalPts);
+
+            // 4. Render Table Body
+            standingsBody.innerHTML = processedRows.map((d, idx) => `
+                <tr>
+                    <td style="font-weight: 800;">${idx + 1}</td>
+                    <td><span class="kart-num">#${d.number}</span></td>
+                    <td><strong>${d.name}</strong></td>
+                    ${d.sessionCells}
+                    <td class="total-pts">${d.totalPts} pts</td>
+                </tr>
+            `).join('');
+        }
+    </script>
+</body>
+</html>
