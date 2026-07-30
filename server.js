@@ -33,6 +33,7 @@ function getOrCreateClubStore(clubId) {
         drivers: []
       },
       pulseEvents: [],
+      standingsData: {},
       lastActive: 0,
       isLive: false
     };
@@ -50,7 +51,7 @@ function authenticateBridge(req, res, next) {
 }
 
 // ==========================================
-// MONITOR TELEMETRY HEARTBEAT (10s TIMEOUT)
+// MONITOR TELEMETRY HEARTBEAT (12s TIMEOUT)
 // ==========================================
 setInterval(() => {
   const now = Date.now();
@@ -69,6 +70,7 @@ setInterval(() => {
 // REST API ENDPOINTS
 // ==========================================
 
+// 1. Live Heat Telemetry Feed
 app.post('/api/results/heat', authenticateBridge, (req, res) => {
   const clubId = (req.headers['x-club-id'] || 'tokoroa').toLowerCase();
   const { className, session, drivers } = req.body;
@@ -95,6 +97,7 @@ app.post('/api/results/heat', authenticateBridge, (req, res) => {
   res.status(200).json({ success: true, club: clubId });
 });
 
+// 2. Track Pulse Highlights Feed
 app.post('/api/results/pulse', authenticateBridge, (req, res) => {
   const clubId = (req.headers['x-club-id'] || 'tokoroa').toLowerCase();
   const { event } = req.body;
@@ -117,6 +120,22 @@ app.post('/api/results/pulse', authenticateBridge, (req, res) => {
   res.status(200).json({ success: true, club: clubId });
 });
 
+// 3. Day Points Standings Feed
+app.post('/api/results/standings', authenticateBridge, (req, res) => {
+  const clubId = (req.headers['x-club-id'] || 'tokoroa').toLowerCase();
+  const { standings } = req.body;
+
+  if (standings) {
+    const store = getOrCreateClubStore(clubId);
+    store.standingsData = standings;
+
+    io.to(clubId).emit('standingsUpdate', standings);
+  }
+
+  res.status(200).json({ success: true, club: clubId });
+});
+
+// 4. Clear Session Data
 app.post('/api/results/clear', authenticateBridge, (req, res) => {
   const clubId = (req.headers['x-club-id'] || 'tokoroa').toLowerCase();
   const store = getOrCreateClubStore(clubId);
@@ -130,7 +149,7 @@ app.post('/api/results/clear', authenticateBridge, (req, res) => {
   res.status(200).json({ success: true, club: clubId });
 });
 
-// Endpoint to fetch live status of all clubs for index.html
+// 5. Fetch Live Status of All Clubs (For index.html Card Indicators)
 app.get('/api/clubs/status', (req, res) => {
   const statuses = {};
   Object.keys(clubDataStore).forEach((clubId) => {
@@ -146,6 +165,7 @@ io.on('connection', (socket) => {
   socket.on('joinClub', (clubId) => {
     const normalizedId = (clubId || 'tokoroa').toLowerCase();
     
+    // Leave previous rooms
     socket.rooms.forEach(room => {
       if (room !== socket.id) socket.leave(room);
     });
@@ -153,12 +173,21 @@ io.on('connection', (socket) => {
     socket.join(normalizedId);
 
     const store = getOrCreateClubStore(normalizedId);
+    
+    // Push current cached state to newly connected client
     socket.emit('heatUpdate', store.heatData);
     socket.emit('pulseHistory', store.pulseEvents);
     socket.emit('orbitStatus', { isLive: store.isLive });
+    
+    if (Object.keys(store.standingsData).length > 0) {
+      socket.emit('standingsUpdate', store.standingsData);
+    }
   });
 });
 
+// ==========================================
+// START SERVER
+// ==========================================
 server.listen(PORT, () => {
   console.log(`🚀 KartSport Live Timing Server running on port ${PORT}`);
 });
