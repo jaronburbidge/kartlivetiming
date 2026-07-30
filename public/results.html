@@ -25,8 +25,37 @@
         .brand h1 { font-size: 1.5rem; text-transform: uppercase; color: var(--accent-red); font-weight: 900; letter-spacing: 1px; }
         .brand p { font-size: 0.85rem; color: var(--text-muted); }
         
-        .status-badge { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; background: rgba(46, 164, 79, 0.15); border: 1px solid var(--accent-green); padding: 6px 12px; border-radius: 20px; color: var(--accent-green); }
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; background-color: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); }
+        /* Dynamic Status Badge */
+        .status-badge { 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            font-size: 0.85rem; 
+            background: rgba(230, 57, 70, 0.15); 
+            border: 1px solid var(--accent-red); 
+            padding: 6px 12px; 
+            border-radius: 20px; 
+            color: var(--accent-red); 
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .status-badge.live {
+            background: rgba(46, 164, 79, 0.15); 
+            border-color: var(--accent-green); 
+            color: var(--accent-green); 
+        }
+        .status-dot { 
+            width: 8px; 
+            height: 8px; 
+            border-radius: 50%; 
+            background-color: var(--accent-red); 
+            box-shadow: 0 0 8px var(--accent-red); 
+            transition: all 0.3s ease;
+        }
+        .status-badge.live .status-dot {
+            background-color: var(--accent-green); 
+            box-shadow: 0 0 8px var(--accent-green); 
+        }
 
         /* Toolbar & Controls */
         .toolbar { padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; background-color: rgba(22, 27, 34, 0.5); border-bottom: 1px solid var(--border-color); }
@@ -89,9 +118,9 @@
             <h1 id="clubTitle">KartSport Telemetry</h1>
             <p>Live Race Telemetry & Track Pulse</p>
         </div>
-        <div class="status-badge">
+        <div class="status-badge" id="statusBadge">
             <span class="status-dot"></span>
-            <span id="connectionText">Live • Connected</span>
+            <span id="connectionText">No Racing In Progress</span>
         </div>
     </header>
 
@@ -193,16 +222,32 @@
 
         socket.on('connect', () => {
             console.log('✅ Connected to WebSocket Server');
-            document.getElementById('connectionText').textContent = 'Live • Connected';
             socket.emit('joinClub', clubId);
         });
 
         socket.on('disconnect', () => {
             console.warn('⚠️ Disconnected from server');
-            document.getElementById('connectionText').textContent = 'Offline • Reconnecting';
+            const badge = document.getElementById('statusBadge');
+            const text = document.getElementById('connectionText');
+            badge.classList.remove('live');
+            text.textContent = 'No Racing In Progress';
         });
 
-        // 4. Update Live Timing Board
+        // 4. Listen for Dynamic Orbits Stream Status (Green when live / Red when offline)
+        socket.on('orbitStatus', (data) => {
+            const badge = document.getElementById('statusBadge');
+            const text = document.getElementById('connectionText');
+
+            if (data && data.isLive) {
+                badge.classList.add('live');
+                text.textContent = 'Live • Connected';
+            } else {
+                badge.classList.remove('live');
+                text.textContent = 'No Racing In Progress';
+            }
+        });
+
+        // 5. Update Live Timing Board
         socket.on('heatUpdate', (data) => {
             if (!data) return;
 
@@ -245,7 +290,7 @@
             }).join('');
         });
 
-        // 5. Update Track Pulse Highlights
+        // 6. Update Track Pulse Highlights
         socket.on('pulseEvent', (event) => {
             renderPulseCard(event, true);
         });
