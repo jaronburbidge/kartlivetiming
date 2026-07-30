@@ -40,6 +40,7 @@
             color: var(--accent-red); 
             font-weight: 600;
             transition: all 0.3s ease;
+            white-space: nowrap;
         }
         .status-badge.live {
             background: rgba(46, 164, 79, 0.15); 
@@ -61,20 +62,20 @@
 
         /* Toolbar & Controls */
         .toolbar { padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; background-color: rgba(22, 27, 34, 0.5); border-bottom: 1px solid var(--border-color); }
-        .nav-buttons { display: flex; gap: 10px; }
+        .nav-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
         .btn-nav { background: var(--panel-bg); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s; }
         .btn-nav.active { background: var(--accent-red); border-color: var(--accent-red); color: #fff; }
         .btn-nav:hover:not(.active) { border-color: var(--text-muted); }
 
-        .select-group { display: flex; gap: 10px; }
+        .select-group { display: flex; gap: 10px; flex-wrap: wrap; }
         select { background: var(--panel-bg); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 16px; border-radius: 6px; font-size: 0.9rem; outline: none; cursor: pointer; min-width: 160px; }
 
-        /* Main Container Grid (Adapts when Track Pulse is hidden) */
+        /* Main Container Grid */
         .container { padding: 20px; flex: 1; max-width: 1600px; margin: 0 auto; width: 100%; display: grid; grid-template-columns: 1fr 340px; gap: 20px; transition: grid-template-columns 0.3s ease; }
         .container.no-pulse { grid-template-columns: 1fr; }
 
         /* Panels */
-        .panel { background-color: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; display: flex; flex-direction: column; }
+        .panel { background-color: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; display: flex; flex-direction: column; overflow-x: auto; }
         .session-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color); }
         .session-title { font-size: 1.2rem; font-weight: 700; color: var(--accent-gold); }
 
@@ -101,7 +102,7 @@
         .podium-pts { font-size: 0.85rem; color: var(--text-muted); }
 
         /* Tables */
-        .timing-table { width: 100%; border-collapse: collapse; text-align: left; }
+        .timing-table { width: 100%; border-collapse: collapse; text-align: left; min-width: 550px; }
         .timing-table th { padding: 12px; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; border-bottom: 1px solid var(--border-color); }
         .timing-table td { padding: 14px 12px; border-bottom: 1px solid var(--border-color); font-size: 0.95rem; }
         .timing-table tr:hover { background-color: rgba(255, 255, 255, 0.02); }
@@ -118,6 +119,24 @@
 
         .view-panel { display: none; }
         .view-panel.active { display: block; }
+
+        /* Responsive Breakpoints */
+        @media (max-width: 1024px) {
+            .container { grid-template-columns: 1fr !important; }
+            .pulse-panel { display: none !important; }
+        }
+
+        @media (max-width: 768px) {
+            header { flex-direction: column; align-items: flex-start; gap: 12px; padding: 12px 15px; }
+            .brand h1 { font-size: 1.2rem; }
+            .toolbar { flex-direction: column; align-items: stretch; padding: 12px 15px; }
+            .nav-buttons, .select-group { width: 100%; justify-content: space-between; }
+            .btn-nav, select { flex: 1; text-align: center; padding: 10px; }
+            .container { padding: 10px; }
+            .panel { padding: 12px; }
+            .podium-container { grid-template-columns: 1fr; gap: 10px; }
+            .timing-table th, .timing-table td { padding: 10px 8px; font-size: 0.85rem; }
+        }
     </style>
 </head>
 <body>
@@ -143,7 +162,6 @@
             <select id="classSelect">
                 <option value="ALL">-- Select Class --</option>
             </select>
-            <!-- Heat/Race selector (Visible only on Live Telemetry) -->
             <select id="heatSelect">
                 <option value="ALL">-- Heat / Race --</option>
                 <option value="Heat 1">Heat 1</option>
@@ -156,7 +174,7 @@
     </div>
 
     <div class="container" id="mainContainer">
-        <!-- Main Timing / Results Panel -->
+        <!-- Main Panel -->
         <div class="panel">
             <div class="session-header">
                 <div class="session-title" id="sessionLabel">Select Class</div>
@@ -188,8 +206,6 @@
 
             <!-- Tab 2: Day Points Standings View -->
             <div id="standingsView" class="view-panel">
-                
-                <!-- Podium Cards (Shows after all 5 races finish) -->
                 <div id="podiumHeader" class="podium-container" style="display: none;">
                     <div class="podium-card p2">
                         <div class="podium-place">🥈 2nd Place</div>
@@ -233,7 +249,7 @@
             </div>
         </div>
 
-        <!-- Track Pulse Sidebar (Visible on Live Telemetry Tab) -->
+        <!-- Track Pulse Sidebar -->
         <div class="pulse-panel" id="pulseSidebar">
             <div class="pulse-header">⚡ Track Pulse</div>
             <div class="pulse-list" id="pulseList">
@@ -262,7 +278,6 @@
 
         document.getElementById('clubTitle').textContent = clubNames[clubId] || `KartSport ${clubId.toUpperCase()}`;
 
-        // View Toggles & Element Visibility
         const btnLive = document.getElementById('btnLive');
         const btnStandings = document.getElementById('btnStandings');
         const liveView = document.getElementById('liveView');
@@ -276,8 +291,6 @@
             btnStandings.classList.remove('active');
             liveView.classList.add('active');
             standingsView.classList.remove('active');
-
-            // Show Track Pulse & Heat Selector on Live Telemetry
             pulseSidebar.style.display = 'flex';
             heatSelect.style.display = 'inline-block';
             mainContainer.classList.remove('no-pulse');
@@ -288,15 +301,12 @@
             btnLive.classList.remove('active');
             standingsView.classList.add('active');
             liveView.classList.remove('active');
-
-            // Hide Track Pulse & Heat Selector on Standings View
             pulseSidebar.style.display = 'none';
             heatSelect.style.display = 'none';
             mainContainer.classList.add('no-pulse');
             renderStandings();
         });
 
-        // Socket Connection
         const socket = io();
 
         socket.on('connect', () => {
@@ -316,7 +326,6 @@
             }
         });
 
-        // Data Management
         let dayStandingsStore = {};
         const classSelect = document.getElementById('classSelect');
 
@@ -334,7 +343,6 @@
             }
         }
 
-        // Live Telemetry Feed
         socket.on('heatUpdate', (data) => {
             if (!data) return;
 
@@ -378,7 +386,6 @@
             }).join('');
         });
 
-        // Track Pulse Updates
         socket.on('pulseEvent', (item) => addPulseItem(item));
         socket.on('pulseHistory', (items) => {
             const list = document.getElementById('pulseList');
@@ -401,7 +408,6 @@
             list.prepend(card);
         }
 
-        // Standings Data Feed
         socket.on('standingsUpdate', (standingsData) => {
             if (standingsData) {
                 dayStandingsStore = standingsData;
