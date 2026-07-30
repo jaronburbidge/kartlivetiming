@@ -22,7 +22,7 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { background-color: var(--bg-dark); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
 
-        /* Header Navigation */
+        /* Header */
         header { background-color: var(--panel-bg); border-bottom: 1px solid var(--border-color); padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; }
         .brand h1 { font-size: 1.5rem; text-transform: uppercase; color: var(--accent-red); font-weight: 900; letter-spacing: 1px; }
         .brand p { font-size: 0.85rem; color: var(--text-muted); }
@@ -67,18 +67,27 @@
         .btn-nav:hover:not(.active) { border-color: var(--text-muted); }
 
         .select-group { display: flex; gap: 10px; }
-        select { background: var(--panel-bg); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 16px; border-radius: 6px; font-size: 0.9rem; outline: none; cursor: pointer; min-width: 180px; }
+        select { background: var(--panel-bg); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 16px; border-radius: 6px; font-size: 0.9rem; outline: none; cursor: pointer; min-width: 160px; }
 
-        /* Full Width Main Layout */
-        .container { padding: 20px; flex: 1; max-width: 1600px; margin: 0 auto; width: 100%; }
+        /* Main Container Grid (Adapts when Track Pulse is hidden) */
+        .container { padding: 20px; flex: 1; max-width: 1600px; margin: 0 auto; width: 100%; display: grid; grid-template-columns: 1fr 340px; gap: 20px; transition: grid-template-columns 0.3s ease; }
+        .container.no-pulse { grid-template-columns: 1fr; }
 
-        /* Timing Board Panel */
+        /* Panels */
         .panel { background-color: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; display: flex; flex-direction: column; }
-        
         .session-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color); }
         .session-title { font-size: 1.2rem; font-weight: 700; color: var(--accent-gold); }
 
-        /* Podium Showcase Card */
+        /* Track Pulse Sidebar */
+        .pulse-panel { background-color: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; display: flex; flex-direction: column; }
+        .pulse-header { font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 8px; }
+        .pulse-list { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; max-height: 600px; }
+        .pulse-card { background: var(--bg-dark); border-left: 4px solid var(--accent-red); padding: 10px 12px; border-radius: 4px; font-size: 0.85rem; }
+        .pulse-card.fastest-lap { border-left-color: var(--accent-gold); }
+        .pulse-time { font-size: 0.7rem; color: var(--text-muted); float: right; }
+        .pulse-title { font-weight: 700; margin-bottom: 4px; }
+
+        /* Podium Cards */
         .podium-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px; }
         .podium-card { background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; text-align: center; }
         .podium-card.p1 { border-color: var(--accent-gold); box-shadow: 0 0 12px rgba(255, 215, 0, 0.15); }
@@ -91,26 +100,22 @@
         .podium-driver { font-size: 1.1rem; font-weight: 700; margin-bottom: 2px; }
         .podium-pts { font-size: 0.85rem; color: var(--text-muted); }
 
-        /* Table Design */
+        /* Tables */
         .timing-table { width: 100%; border-collapse: collapse; text-align: left; }
         .timing-table th { padding: 12px; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; border-bottom: 1px solid var(--border-color); }
         .timing-table td { padding: 14px 12px; border-bottom: 1px solid var(--border-color); font-size: 0.95rem; }
         .timing-table tr:hover { background-color: rgba(255, 255, 255, 0.02); }
 
-        /* Merged Position + Delta Column */
         .pos-cell { display: flex; align-items: center; gap: 8px; }
         .pos-num { font-weight: 800; font-size: 1.1rem; min-width: 24px; }
-
         .kart-num { font-weight: 700; color: var(--accent-gold); background: rgba(255, 215, 0, 0.1); padding: 4px 8px; border-radius: 4px; display: inline-block; }
         .total-pts { font-weight: 800; color: var(--accent-gold); font-size: 1.05rem; }
 
-        /* Delta Badges */
         .delta { font-weight: 700; font-size: 0.75rem; padding: 2px 5px; border-radius: 4px; display: inline-block; }
         .delta.up { color: var(--accent-green); background: rgba(46, 164, 79, 0.15); }
         .delta.down { color: var(--accent-red); background: rgba(230, 57, 70, 0.15); }
         .delta.same { color: var(--text-muted); }
 
-        /* View Containers */
         .view-panel { display: none; }
         .view-panel.active { display: block; }
     </style>
@@ -128,7 +133,7 @@
         </div>
     </header>
 
-    <!-- Toolbar with Class-Only Selector -->
+    <!-- Toolbar -->
     <div class="toolbar">
         <div class="nav-buttons">
             <button class="btn-nav active" id="btnLive">🚨 Live Telemetry</button>
@@ -138,16 +143,26 @@
             <select id="classSelect">
                 <option value="ALL">-- Select Class --</option>
             </select>
+            <!-- Heat/Race selector (Visible only on Live Telemetry) -->
+            <select id="heatSelect">
+                <option value="ALL">-- Heat / Race --</option>
+                <option value="Heat 1">Heat 1</option>
+                <option value="Heat 2">Heat 2</option>
+                <option value="Heat 3">Heat 3</option>
+                <option value="Pre-Final">Pre-Final</option>
+                <option value="Final">Final</option>
+            </select>
         </div>
     </div>
 
-    <div class="container">
+    <div class="container" id="mainContainer">
+        <!-- Main Timing / Results Panel -->
         <div class="panel">
             <div class="session-header">
                 <div class="session-title" id="sessionLabel">Select Class</div>
             </div>
 
-            <!-- View 1: Live Telemetry Table -->
+            <!-- Tab 1: Live Telemetry Table -->
             <div id="liveView" class="view-panel active">
                 <table class="timing-table">
                     <thead>
@@ -171,10 +186,10 @@
                 </table>
             </div>
 
-            <!-- View 2: Day Points Standings View (Podium renders after all 5 races finish) -->
+            <!-- Tab 2: Day Points Standings View -->
             <div id="standingsView" class="view-panel">
                 
-                <!-- Day Podium Header (Renders only after all 5 races finish) -->
+                <!-- Podium Cards (Shows after all 5 races finish) -->
                 <div id="podiumHeader" class="podium-container" style="display: none;">
                     <div class="podium-card p2">
                         <div class="podium-place">🥈 2nd Place</div>
@@ -217,14 +232,22 @@
                 </table>
             </div>
         </div>
+
+        <!-- Track Pulse Sidebar (Visible on Live Telemetry Tab) -->
+        <div class="pulse-panel" id="pulseSidebar">
+            <div class="pulse-header">⚡ Track Pulse</div>
+            <div class="pulse-list" id="pulseList">
+                <div style="color: var(--text-muted); font-size: 0.85rem; text-align: center; padding: 20px;">
+                    No race highlights yet.
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
-        // 1. URL Query Params
         const urlParams = new URLSearchParams(window.location.search);
         const clubId = urlParams.get('club') || 'tokoroa';
 
-        // 2. Club Names
         const clubNames = {
             'whangarei': 'KartSport Whangarei',
             'auckland': 'KartSport Auckland Mt Wellington',
@@ -239,17 +262,25 @@
 
         document.getElementById('clubTitle').textContent = clubNames[clubId] || `KartSport ${clubId.toUpperCase()}`;
 
-        // Navigation View Switches
+        // View Toggles & Element Visibility
         const btnLive = document.getElementById('btnLive');
         const btnStandings = document.getElementById('btnStandings');
         const liveView = document.getElementById('liveView');
         const standingsView = document.getElementById('standingsView');
+        const pulseSidebar = document.getElementById('pulseSidebar');
+        const heatSelect = document.getElementById('heatSelect');
+        const mainContainer = document.getElementById('mainContainer');
 
         btnLive.addEventListener('click', () => {
             btnLive.classList.add('active');
             btnStandings.classList.remove('active');
             liveView.classList.add('active');
             standingsView.classList.remove('active');
+
+            // Show Track Pulse & Heat Selector on Live Telemetry
+            pulseSidebar.style.display = 'flex';
+            heatSelect.style.display = 'inline-block';
+            mainContainer.classList.remove('no-pulse');
         });
 
         btnStandings.addEventListener('click', () => {
@@ -257,10 +288,15 @@
             btnLive.classList.remove('active');
             standingsView.classList.add('active');
             liveView.classList.remove('active');
+
+            // Hide Track Pulse & Heat Selector on Standings View
+            pulseSidebar.style.display = 'none';
+            heatSelect.style.display = 'none';
+            mainContainer.classList.add('no-pulse');
             renderStandings();
         });
 
-        // 3. Socket Connection
+        // Socket Connection
         const socket = io();
 
         socket.on('connect', () => {
@@ -280,7 +316,7 @@
             }
         });
 
-        // 4. Standings & Class Filter Data Engine
+        // Data Management
         let dayStandingsStore = {};
         const classSelect = document.getElementById('classSelect');
 
@@ -298,7 +334,7 @@
             }
         }
 
-        // 5. Update Live Telemetry Board
+        // Live Telemetry Feed
         socket.on('heatUpdate', (data) => {
             if (!data) return;
 
@@ -342,7 +378,30 @@
             }).join('');
         });
 
-        // 6. Receive Day Points Standings Data
+        // Track Pulse Updates
+        socket.on('pulseEvent', (item) => addPulseItem(item));
+        socket.on('pulseHistory', (items) => {
+            const list = document.getElementById('pulseList');
+            list.innerHTML = '';
+            if (items && items.length > 0) items.forEach(addPulseItem);
+        });
+
+        function addPulseItem(item) {
+            const list = document.getElementById('pulseList');
+            if (list.children.length === 1 && list.children[0].textContent.includes('No race highlights')) {
+                list.innerHTML = '';
+            }
+            const card = document.createElement('div');
+            card.className = `pulse-card ${item.badge || ''}`;
+            card.innerHTML = `
+                <span class="pulse-time">${item.timestamp || ''}</span>
+                <div class="pulse-title">${item.title}</div>
+                <div>${item.text}</div>
+            `;
+            list.prepend(card);
+        }
+
+        // Standings Data Feed
         socket.on('standingsUpdate', (standingsData) => {
             if (standingsData) {
                 dayStandingsStore = standingsData;
@@ -371,7 +430,6 @@
                 return;
             }
 
-            // Check if all 5 races (H1, H2, H3, Pre-Final, Final) are completed for the class
             const allRacesCompleted = classDrivers.every(d => 
                 d.h1 !== undefined && d.h1 !== '-' &&
                 d.h2 !== undefined && d.h2 !== '-' &&
@@ -380,10 +438,8 @@
                 d.final !== undefined && d.final !== '-'
             );
 
-            // Sort drivers by Total Points
             classDrivers.sort((a, b) => b.totalPts - a.totalPts);
 
-            // ONLY show podium after all 5 races are completed
             if (allRacesCompleted && classDrivers.length >= 1) {
                 podiumHeader.style.display = 'grid';
                 document.getElementById('p1Name').textContent = `#${classDrivers[0].number} ${classDrivers[0].name}`;
@@ -401,7 +457,6 @@
                 podiumHeader.style.display = 'none';
             }
 
-            // Render Standings Table Rows
             standingsBody.innerHTML = classDrivers.map((d, idx) => `
                 <tr>
                     <td style="font-weight: 800;">${idx + 1}</td>
