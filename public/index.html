@@ -16,19 +16,19 @@
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background-color: var(--bg-dark); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+        body { background-color: var(--bg-dark); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; }
         
         .header { text-align: center; margin-bottom: 40px; }
         .header h1 { font-size: 2.5rem; text-transform: uppercase; color: var(--accent-red); margin-bottom: 8px; font-weight: 900; letter-spacing: 1px; }
         .header p { color: var(--text-muted); font-size: 1.1rem; }
 
-        .club-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; width: 100%; max-width: 900px; }
+        .club-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; width: 100%; max-width: 1000px; }
         
         .club-card {
             background-color: var(--card-bg);
             border: 1px solid var(--border-color);
             border-radius: 12px;
-            padding: 25px;
+            padding: 24px;
             text-align: center;
             text-decoration: none;
             color: var(--text-main);
@@ -46,12 +46,12 @@
             box-shadow: 0 8px 24px rgba(230, 57, 70, 0.2);
         }
 
-        .club-icon { font-size: 2.5rem; margin-bottom: 12px; }
-        .club-name { font-size: 1.3rem; font-weight: 700; margin-bottom: 6px; }
+        .club-icon { font-size: 2.2rem; margin-bottom: 10px; }
+        .club-name { font-size: 1.2rem; font-weight: 700; margin-bottom: 8px; }
         .club-status { font-size: 0.85rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
         .live-dot { width: 8px; height: 8px; border-radius: 50%; background-color: #2ea44f; box-shadow: 0 0 6px #2ea44f; }
 
-        footer { margin-top: 50px; color: var(--text-muted); font-size: 0.85rem; }
+        footer { margin-top: 50px; color: var(--text-muted); font-size: 0.85rem; text-align: center; }
     </style>
 </head>
 <body>
@@ -62,27 +62,57 @@
     </div>
 
     <div class="club-grid">
-        <a href="/results.html?club=tokoroa" class="club-card">
+        <a href="/results.html?club=whangarei" class="club-card">
             <div class="club-icon">🏎️</div>
-            <div class="club-name">Tokoroa Kart Club</div>
+            <div class="club-name">KartSport Whangarei</div>
             <div class="club-status"><span class="live-dot"></span> Live Telemetry Ready</div>
         </a>
 
         <a href="/results.html?club=auckland" class="club-card">
             <div class="club-icon">🏎️</div>
-            <div class="club-name">Auckland Kart Club</div>
+            <div class="club-name">KartSport Auckland Mt Wellington</div>
             <div class="club-status"><span class="live-dot"></span> Live Telemetry Ready</div>
         </a>
 
         <a href="/results.html?club=hamilton" class="club-card">
             <div class="club-icon">🏎️</div>
-            <div class="club-name">Hamilton Kart Club</div>
+            <div class="club-name">KartSport Hamilton</div>
+            <div class="club-status"><span class="live-dot"></span> Live Telemetry Ready</div>
+        </a>
+
+        <a href="/results.html?club=tokoroa" class="club-card">
+            <div class="club-icon">🏎️</div>
+            <div class="club-name">KartSport Tokoroa</div>
             <div class="club-status"><span class="live-dot"></span> Live Telemetry Ready</div>
         </a>
 
         <a href="/results.html?club=bop" class="club-card">
             <div class="club-icon">🏎️</div>
-            <div class="club-name">Bay of Plenty Kart Club</div>
+            <div class="club-name">KartSport Bay of Plenty</div>
+            <div class="club-status"><span class="live-dot"></span> Live Telemetry Ready</div>
+        </a>
+
+        <a href="/results.html?club=ebop" class="club-card">
+            <div class="club-icon">🏎️</div>
+            <div class="club-name">KartSport Eastern Bay of Plenty</div>
+            <div class="club-status"><span class="live-dot"></span> Live Telemetry Ready</div>
+        </a>
+
+        <a href="/results.html?club=taranaki" class="club-card">
+            <div class="club-icon">🏎️</div>
+            <div class="club-name">KartSport Taranaki</div>
+            <div class="club-status"><span class="live-dot"></span> Live Telemetry Ready</div>
+        </a>
+
+        <a href="/results.html?club=manawatu" class="club-card">
+            <div class="club-icon">🏎️</div>
+            <div class="club-name">KartSport Manawatu</div>
+            <div class="club-status"><span class="live-dot"></span> Live Telemetry Ready</div>
+        </a>
+
+        <a href="/results.html?club=wellington" class="club-card">
+            <div class="club-icon">🏎️</div>
+            <div class="club-name">KartSport Wellington</div>
             <div class="club-status"><span class="live-dot"></span> Live Telemetry Ready</div>
         </a>
     </div>
