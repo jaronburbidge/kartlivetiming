@@ -33,18 +33,23 @@ wss.on('connection', (ws, req) => {
   // Send current state to newly connected client
   if (clubDataStore[clubId]) {
     if (clubDataStore[clubId].heat) {
-      Object.values(clubDataStore[clubId].heat).forEach(cData => ws.send(JSON.stringify({ type: 'heat', ...cData })));
+      Object.keys(clubDataStore[clubId].heat).forEach(cName => {
+        Object.values(clubDataStore[clubId].heat[cName]).forEach(sData => {
+          ws.send(JSON.stringify({ type: 'heat', ...sData }));
+        });
+      });
     }
     if (clubDataStore[clubId].pulse) {
       ws.send(JSON.stringify({ type: 'pulse', events: clubDataStore[clubId].pulse }));
     }
     if (clubDataStore[clubId].points) {
-      ws.send(JSON.stringify({ type: 'points', data: clubDataStore[clubId].points }));
+      Object.keys(clubDataStore[clubId].points).forEach(cName => {
+        ws.send(JSON.stringify({ type: 'points', className: cName, standings: clubDataStore[clubId].points[cName] }));
+      });
     }
   }
 });
 
-// Helper for API authentication
 function checkAuth(req, res) {
   const apiKey = req.headers['x-api-key'];
   if (apiKey !== VALID_API_KEY) {
@@ -60,12 +65,16 @@ app.post('/api/results/heat', (req, res) => {
   const clubId = req.headers['x-club-id'] || 'auckland';
   const { className, session, drivers } = req.body;
 
+  const currentSession = session || 'Heat 1';
+
   if (!clubDataStore[clubId]) clubDataStore[clubId] = { heat: {}, pulse: [], points: {} };
   if (!clubDataStore[clubId].heat) clubDataStore[clubId].heat = {};
+  if (!clubDataStore[clubId].heat[className]) clubDataStore[clubId].heat[className] = {};
   
-  clubDataStore[clubId].heat[className] = { className, session, drivers };
+  // Store session under its specific class and session/heat name
+  clubDataStore[clubId].heat[className][currentSession] = { className, session: currentSession, drivers };
 
-  broadcastToClub(clubId, { type: 'heat', className, session, drivers });
+  broadcastToClub(clubId, { type: 'heat', className, session: currentSession, drivers });
   return res.status(200).json({ status: 'success' });
 });
 
@@ -73,12 +82,11 @@ app.post('/api/results/heat', (req, res) => {
 app.post('/api/results/pulse', (req, res) => {
   if (!checkAuth(req, res)) return;
   const clubId = req.headers['x-club-id'] || 'auckland';
-  const { event } = req.body; // e.g. { message: "Kart #42 set overall fastest lap!", type: "fastest_lap" }
+  const { event } = req.body;
 
   if (!clubDataStore[clubId]) clubDataStore[clubId] = { heat: {}, pulse: [], points: {} };
   if (!clubDataStore[clubId].pulse) clubDataStore[clubId].pulse = [];
 
-  // Keep last 15 pulse events
   clubDataStore[clubId].pulse.unshift({ ...event, timestamp: new Date().toLocaleTimeString() });
   if (clubDataStore[clubId].pulse.length > 15) clubDataStore[clubId].pulse.pop();
 
@@ -86,11 +94,11 @@ app.post('/api/results/pulse', (req, res) => {
   return res.status(200).json({ status: 'success' });
 });
 
-// 3. Race Day Points Standings Endpoint
+// 3. Points Endpoint
 app.post('/api/results/points', (req, res) => {
   if (!checkAuth(req, res)) return;
   const clubId = req.headers['x-club-id'] || 'auckland';
-  const { className, standings } = req.body; // standings: [{ pos, number, name, points }]
+  const { className, standings } = req.body;
 
   if (!clubDataStore[clubId]) clubDataStore[clubId] = { heat: {}, pulse: [], points: {} };
   if (!clubDataStore[clubId].points) clubDataStore[clubId].points = {};
