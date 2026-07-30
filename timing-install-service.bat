@@ -27,21 +27,31 @@ cd /d "%~dp0"
 :: STEP 1: SELECT CLUB
 :: ---------------------------------------------------------
 echo Select your Kart Club:
-echo [1] Tokoroa Kart Club (tokoroa)
-echo [2] Auckland Kart Club (auckland)
-echo [3] Hamilton Kart Club (hamilton)
-echo [4] Bay of Plenty Kart Club (bop)
-echo [5] Enter Custom Club ID
+echo [1] KartSport Whangarei (whangarei)
+echo [2] KartSport Auckland Mt Wellington (auckland)
+echo [3] KartSport Hamilton (hamilton)
+echo [4] KartSport Tokoroa (tokoroa)
+echo [5] KartSport Bay of Plenty (bop)
+echo [6] KartSport Eastern Bay of Plenty (ebop)
+echo [7] KartSport Taranaki (taranaki)
+echo [8] KartSport Manawatu (manawatu)
+echo [9] KartSport Wellington (wellington)
+echo [10] Enter Custom Club ID
 echo.
-set /p CLUB_CHOICE="Enter choice [1-5]: "
+set /p CLUB_CHOICE="Enter choice [1-10]: "
 
-if "%CLUB_CHOICE%"=="1" set SELECTED_CLUB=tokoroa
+if "%CLUB_CHOICE%"=="1" set SELECTED_CLUB=whangarei
 if "%CLUB_CHOICE%"=="2" set SELECTED_CLUB=auckland
 if "%CLUB_CHOICE%"=="3" set SELECTED_CLUB=hamilton
-if "%CLUB_CHOICE%"=="4" set SELECTED_CLUB=bop
-if "%CLUB_CHOICE%"=="5" (
+if "%CLUB_CHOICE%"=="4" set SELECTED_CLUB=tokoroa
+if "%CLUB_CHOICE%"=="5" set SELECTED_CLUB=bop
+if "%CLUB_CHOICE%"=="6" set SELECTED_CLUB=ebop
+if "%CLUB_CHOICE%"=="7" set SELECTED_CLUB=taranaki
+if "%CLUB_CHOICE%"=="8" set SELECTED_CLUB=manawatu
+if "%CLUB_CHOICE%"=="9" set SELECTED_CLUB=wellington
+if "%CLUB_CHOICE%"=="10" (
     echo.
-    set /p SELECTED_CLUB="Type custom club slug (lowercase, e.g. wellington): "
+    set /p SELECTED_CLUB="Type custom club slug (lowercase, e.g. hawkesbay): "
 )
 
 if "%SELECTED_CLUB%"=="" set SELECTED_CLUB=tokoroa
