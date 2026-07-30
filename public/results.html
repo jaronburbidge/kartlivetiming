@@ -17,177 +17,42 @@
             --text-muted: #8b949e;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        }
-
-        body {
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            padding: 20px;
-            min-height: 100vh;
-        }
-
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid var(--accent-red);
-            padding-bottom: 15px;
-            margin-bottom: 20px;
-        }
-
-        .club-title {
-            text-transform: uppercase;
-            font-size: 1.8rem;
-            font-weight: 800;
-            color: var(--accent-red);
-            letter-spacing: 1px;
-        }
-
-        .subtitle {
-            font-size: 0.9rem;
-            color: var(--text-muted);
-        }
-
-        .status-badge {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.85rem;
-            color: var(--text-muted);
-        }
-
-        .status-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background-color: #e63946;
-        }
-
-        .status-dot.connected {
-            background-color: #2ea44f;
-            box-shadow: 0 0 8px #2ea44f;
-        }
-
-        .controls {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        select {
-            background-color: var(--card-bg);
-            color: var(--text-main);
-            border: 1px solid var(--border-color);
-            padding: 10px 15px;
-            border-radius: 6px;
-            font-size: 0.95rem;
-            outline: none;
-            cursor: pointer;
-        }
-
-        select:focus {
-            border-color: var(--accent-red);
-        }
-
-        /* Podium Layout */
-        .podium-container {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            margin-bottom: 25px;
-        }
-
-        .podium-card {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 15px;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-        }
-
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: var(--bg-dark); color: var(--text-main); padding: 20px; min-height: 100vh; }
+        header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--accent-red); padding-bottom: 15px; margin-bottom: 20px; }
+        .club-title { text-transform: uppercase; font-size: 1.8rem; font-weight: 800; color: var(--accent-red); letter-spacing: 1px; }
+        .subtitle { font-size: 0.9rem; color: var(--text-muted); }
+        .status-badge { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--text-muted); }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; background-color: #e63946; }
+        .status-dot.connected { background-color: #2ea44f; box-shadow: 0 0 8px #2ea44f; }
+        .controls { display: flex; gap: 15px; margin-bottom: 20px; }
+        select { background-color: var(--card-bg); color: var(--text-main); border: 1px solid var(--border-color); padding: 10px 15px; border-radius: 6px; font-size: 0.95rem; outline: none; cursor: pointer; }
+        select:focus { border-color: var(--accent-red); }
+        .podium-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px; }
+        .podium-card { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; text-align: center; }
         .podium-card.p1 { border-top: 4px solid var(--accent-gold); }
         .podium-card.p2 { border-top: 4px solid var(--accent-silver); }
         .podium-card.p3 { border-top: 4px solid var(--accent-bronze); }
-
-        .podium-pos {
-            font-size: 1.2rem;
-            font-weight: 800;
-            margin-bottom: 5px;
-        }
-
+        .podium-pos { font-size: 1.2rem; font-weight: 800; margin-bottom: 5px; }
         .p1 .podium-pos { color: var(--accent-gold); }
         .p2 .podium-pos { color: var(--accent-silver); }
         .p3 .podium-pos { color: var(--accent-bronze); }
-
-        .podium-driver {
-            font-size: 1.1rem;
-            font-weight: 700;
-            margin-bottom: 4px;
-        }
-
-        .podium-detail {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-        }
-
-        /* Timing Table */
-        .table-container {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            overflow: hidden;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            text-align: left;
-        }
-
-        th {
-            background-color: #1c2128;
-            padding: 12px 16px;
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            color: var(--text-muted);
-            letter-spacing: 0.5px;
-        }
-
-        td {
-            padding: 12px 16px;
-            border-top: 1px solid var(--border-color);
-            font-size: 0.95rem;
-        }
-
-        tr:nth-child(even) {
-            background-color: rgba(255, 255, 255, 0.02);
-        }
-
+        .podium-driver { font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
+        .podium-detail { font-size: 0.85rem; color: var(--text-muted); }
+        .table-container { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th { background-color: #1c2128; padding: 12px 16px; font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); }
+        td { padding: 12px 16px; border-top: 1px solid var(--border-color); font-size: 0.95rem; }
+        tr:nth-child(even) { background-color: rgba(255, 255, 255, 0.02); }
         .pos-col { font-weight: 700; width: 60px; }
         .kart-col { font-weight: 700; color: var(--accent-red); width: 80px; }
         .driver-col { font-weight: 600; }
         .mono { font-family: monospace; }
-
-        .no-data {
-            text-align: center;
-            padding: 40px;
-            color: var(--text-muted);
-        }
-
-        @media (max-width: 768px) {
-            .podium-container { grid-template-columns: 1fr; }
-        }
+        .no-data { text-align: center; padding: 40px; color: var(--text-muted); }
+        @media (max-width: 768px) { .podium-container { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
-
     <header>
         <div>
             <div class="club-title" id="clubTitle">Timing & Results</div>
@@ -208,10 +73,8 @@
         </select>
     </div>
 
-    <!-- Top 3 Podium Cards -->
     <div class="podium-container" id="podiumContainer"></div>
 
-    <!-- Full Timing Grid -->
     <div class="table-container">
         <table>
             <thead>
@@ -225,26 +88,19 @@
                 </tr>
             </thead>
             <tbody id="timingTableBody">
-                <tr>
-                    <td colspan="6" class="no-data">No active class selected or no data available.</td>
-                </tr>
+                <tr><td colspan="6" class="no-data">No active class selected or no data available.</td></tr>
             </tbody>
         </table>
     </div>
 
     <script>
-        // Get Club ID from URL query param (e.g. ?club=auckland)
         const urlParams = new URLSearchParams(window.location.search);
         const clubId = urlParams.get('club') || 'auckland';
-
-        // Format Header
         document.getElementById('clubTitle').textContent = `${clubId.replace('-', ' ')} Kart Club`;
 
-        // Telemetry Data Store
         let classDataStore = {};
         let activeClass = '';
 
-        // WebSockets Connection Setup
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = `${protocol}//${window.location.host}?club=${clubId}`;
         let socket;
@@ -273,27 +129,18 @@
                 document.getElementById('statusText').textContent = 'Reconnecting...';
                 setTimeout(connectWebSocket, 3000);
             };
-
-            socket.onerror = (err) => {
-                console.error('WebSocket Error:', err);
-                socket.close();
-            };
         }
 
         function handleIncomingData(data) {
             const className = data.className;
             classDataStore[className] = data;
-
-            // Update Dropdown options if new class detected
             updateClassDropdown();
 
-            // Auto-select class if none is active
             if (!activeClass || activeClass === '') {
                 activeClass = className;
                 document.getElementById('classSelect').value = className;
             }
 
-            // Render UI if incoming data matches currently selected class
             if (activeClass === className) {
                 renderBoard(data);
             }
@@ -302,8 +149,6 @@
         function updateClassDropdown() {
             const select = document.getElementById('classSelect');
             const availableClasses = Object.keys(classDataStore);
-
-            // Keep current value
             const currentVal = select.value;
             select.innerHTML = '';
 
@@ -316,6 +161,8 @@
 
             if (currentVal && availableClasses.includes(currentVal)) {
                 select.value = currentVal;
+            } else if (activeClass) {
+                select.value = activeClass;
             }
         }
 
@@ -329,13 +176,10 @@
 
         function renderBoard(data) {
             document.getElementById('sessionTitle').textContent = `${data.className} - ${data.session || 'Live Session'}`;
-            
             const drivers = data.drivers || [];
             
-            // 1. Render Podium Cards
             const podiumContainer = document.getElementById('podiumContainer');
             podiumContainer.innerHTML = '';
-
             const top3 = drivers.slice(0, 3);
             const podiumClasses = ['p1', 'p2', 'p3'];
 
@@ -350,7 +194,6 @@
                 podiumContainer.appendChild(card);
             });
 
-            // 2. Render Full Timing Table
             const tbody = document.getElementById('timingTableBody');
             if (drivers.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="6" class="no-data">No active timing data available.</td></tr>';
@@ -369,7 +212,6 @@
             `).join('');
         }
 
-        // Initialize connection
         connectWebSocket();
     </script>
 </body>
