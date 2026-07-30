@@ -28,7 +28,9 @@
         .tab-btn { background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; }
         .tab-btn.active { background: var(--accent-red); border-color: var(--accent-red); }
 
-        .main-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+        /* Dynamic Grid Layout */
+        .main-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; transition: all 0.3s ease; }
+        .main-layout.full-width { grid-template-columns: 1fr; }
         
         .controls { display: flex; gap: 15px; margin-bottom: 15px; }
         select { background-color: var(--card-bg); color: var(--text-main); border: 1px solid var(--border-color); padding: 10px 15px; border-radius: 6px; font-size: 0.95rem; outline: none; cursor: pointer; }
@@ -71,7 +73,7 @@
         <button class="tab-btn" id="tabPoints" onclick="switchTab('points')">🏆 Day Points Standings</button>
     </div>
 
-    <div class="main-layout">
+    <div class="main-layout" id="mainLayout">
         <div>
             <!-- DUAL DROPDOWN CONTROLS: CLASS & HEAT/SESSION -->
             <div class="controls">
@@ -113,8 +115,8 @@
             </div>
         </div>
 
-        <!-- TRACK PULSE SIDEBAR -->
-        <div class="pulse-panel">
+        <!-- TRACK PULSE SIDEBAR (Visually hidden on Points tab) -->
+        <div class="pulse-panel" id="pulsePanel">
             <div class="pulse-header">
                 <span>⚡ Track Pulse</span>
                 <span style="font-size:0.8rem; color: var(--text-muted);">Real-time Highlights</span>
@@ -128,7 +130,6 @@
         const clubId = urlParams.get('club') || 'auckland';
         document.getElementById('clubTitle').textContent = `${clubId.replace('-', ' ')} Kart Club`;
 
-        // Telemetry Store: { [className]: { [sessionName]: { className, session, drivers } } }
         let telemetryStore = {};
         let pointsDataStore = {};
         
@@ -167,7 +168,6 @@
                         if (!telemetryStore[cName]) telemetryStore[cName] = {};
                         telemetryStore[cName][sName] = data;
 
-                        // Auto-select initial class and heat if not selected
                         if (!activeClass) activeClass = cName;
                         if (!activeSession || activeClass === cName) activeSession = sName;
 
@@ -188,20 +188,42 @@
             socket.onclose = () => setTimeout(connectWebSocket, 3000);
         }
 
+        // TAB SWITCHER FUNCTION WITH TRACK PULSE TOGGLE
         function switchTab(tab) {
             currentTab = tab;
+            
+            const pulsePanel = document.getElementById('pulsePanel');
+            const mainLayout = document.getElementById('mainLayout');
+            const sessionSelect = document.getElementById('sessionSelect');
+
             document.getElementById('tabLive').classList.toggle('active', tab === 'live');
             document.getElementById('tabPoints').classList.toggle('active', tab === 'points');
-            document.getElementById('viewLive').style.display = tab === 'live' ? 'block' : 'none';
-            document.getElementById('viewPoints').style.display = tab === 'points' ? 'block' : 'none';
-            if (tab === 'points' && pointsDataStore[activeClass]) renderPoints(pointsDataStore[activeClass]);
+            
+            if (tab === 'live') {
+                document.getElementById('viewLive').style.display = 'block';
+                document.getElementById('viewPoints').style.display = 'none';
+                sessionSelect.style.display = 'inline-block'; // Show Heat dropdown
+                
+                // Show Track Pulse and return to 2-column layout
+                pulsePanel.style.display = 'block';
+                mainLayout.classList.remove('full-width');
+            } else {
+                document.getElementById('viewLive').style.display = 'none';
+                document.getElementById('viewPoints').style.display = 'block';
+                sessionSelect.style.display = 'none'; // Hide Heat dropdown (Points are for whole day)
+                
+                // Hide Track Pulse and expand Points table to 1-column full width
+                pulsePanel.style.display = 'none';
+                mainLayout.classList.add('full-width');
+
+                if (pointsDataStore[activeClass]) renderPoints(pointsDataStore[activeClass]);
+            }
         }
 
         function updateDropdowns() {
             const classSelect = document.getElementById('classSelect');
             const sessionSelect = document.getElementById('sessionSelect');
 
-            // 1. Populate Class Dropdown
             const classes = Object.keys(telemetryStore);
             const currentSelectedClass = classSelect.value || activeClass;
             
@@ -217,7 +239,6 @@
                 activeClass = currentSelectedClass;
             }
 
-            // 2. Populate Heat/Session Dropdown for Active Class
             sessionSelect.innerHTML = '';
             if (activeClass && telemetryStore[activeClass]) {
                 const sessions = Object.keys(telemetryStore[activeClass]);
@@ -233,7 +254,7 @@
                     sessionSelect.value = currentSelectedSession;
                     activeSession = currentSelectedSession;
                 } else if (sessions.length > 0) {
-                    activeSession = sessions[sessions.length - 1]; // Pick latest
+                    activeSession = sessions[sessions.length - 1];
                     sessionSelect.value = activeSession;
                 }
             }
@@ -266,7 +287,6 @@
             document.getElementById('sessionTitle').textContent = `${data.className} - ${data.session}`;
             const drivers = data.drivers || [];
             
-            // Podium Cards
             const podiumContainer = document.getElementById('podiumContainer');
             podiumContainer.innerHTML = '';
             drivers.slice(0, 3).forEach((d, i) => {
@@ -276,7 +296,6 @@
                 podiumContainer.appendChild(card);
             });
 
-            // Table
             document.getElementById('timingTableBody').innerHTML = drivers.map((d, i) => `
                 <tr><td>${i+1}</td><td class="kart-col">#${d.number}</td><td>${d.name}</td><td>${d.laps}</td><td>${d.bestLap}</td><td>${d.gap}</td></tr>
             `).join('');
