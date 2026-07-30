@@ -65,7 +65,7 @@
         .btn-nav:hover:not(.active) { border-color: var(--text-muted); }
 
         .select-group { display: flex; gap: 10px; }
-        select { background: var(--panel-bg); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 6px; font-size: 0.9rem; outline: none; }
+        select { background: var(--panel-bg); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 6px; font-size: 0.9rem; outline: none; cursor: pointer; }
 
         /* Main Layout */
         .container { display: grid; grid-template-columns: 1fr 340px; gap: 20px; padding: 20px; flex: 1; max-width: 1600px; margin: 0 auto; width: 100%; }
@@ -86,14 +86,21 @@
         .timing-table td { padding: 14px 12px; border-bottom: 1px solid var(--border-color); font-size: 0.95rem; }
         .timing-table tr:hover { background-color: rgba(255, 255, 255, 0.02); }
 
-        .pos-col { font-weight: 800; font-size: 1.1rem; width: 50px; }
+        /* Merged Position + Delta Column */
+        .pos-cell { display: flex; align-items: center; gap: 8px; }
+        .pos-num { font-weight: 800; font-size: 1.1rem; min-width: 24px; }
+
         .kart-num { font-weight: 700; color: var(--accent-gold); background: rgba(255, 215, 0, 0.1); padding: 4px 8px; border-radius: 4px; display: inline-block; }
         
         /* Delta Badges */
-        .delta { font-weight: 700; font-size: 0.85rem; padding: 2px 6px; border-radius: 4px; display: inline-block; }
+        .delta { font-weight: 700; font-size: 0.75rem; padding: 2px 5px; border-radius: 4px; display: inline-block; }
         .delta.up { color: var(--accent-green); background: rgba(46, 164, 79, 0.15); }
         .delta.down { color: var(--accent-red); background: rgba(230, 57, 70, 0.15); }
         .delta.same { color: var(--text-muted); }
+
+        /* View Containers */
+        .view-panel { display: none; }
+        .view-panel.active { display: block; }
 
         /* Track Pulse Panel */
         .pulse-header { font-size: 1.1rem; font-weight: 700; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
@@ -141,32 +148,57 @@
     </div>
 
     <div class="container">
-        <!-- Main Timing Board -->
+        <!-- Main Content Area -->
         <div class="panel">
             <div class="session-header">
                 <div class="session-title" id="sessionLabel">Select Class - Select Heat / Race</div>
             </div>
 
-            <table class="timing-table">
-                <thead>
-                    <tr>
-                        <th>Pos</th>
-                        <th>Kart #</th>
-                        <th>Driver</th>
-                        <th>Gain / Loss</th>
-                        <th>Laps</th>
-                        <th>Best Lap</th>
-                        <th>Gap</th>
-                    </tr>
-                </thead>
-                <tbody id="timingBody">
-                    <tr>
-                        <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 40px;">
-                            Waiting for live race telemetry feed...
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+            <!-- View 1: Live Telemetry Table -->
+            <div id="liveView" class="view-panel active">
+                <table class="timing-table">
+                    <thead>
+                        <tr>
+                            <th>Pos</th>
+                            <th>Kart #</th>
+                            <th>Driver</th>
+                            <th>Laps</th>
+                            <th>Last Lap</th>
+                            <th>Best Lap</th>
+                            <th>Gap</th>
+                        </tr>
+                    </thead>
+                    <tbody id="timingBody">
+                        <tr>
+                            <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 40px;">
+                                Waiting for live race telemetry feed...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- View 2: Day Points Standings Table -->
+            <div id="standingsView" class="view-panel">
+                <table class="timing-table">
+                    <thead>
+                        <tr>
+                            <th>Pos</th>
+                            <th>Kart #</th>
+                            <th>Driver</th>
+                            <th>Class</th>
+                            <th>Points</th>
+                        </tr>
+                    </thead>
+                    <tbody id="standingsBody">
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 40px;">
+                                Day Points Standings will be updated as heats complete.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <!-- Track Pulse Feed -->
@@ -184,7 +216,7 @@
     </div>
 
     <script>
-        // 1. Get Club ID from URL Query String (?club=tokoroa)
+        // 1. Get Club ID from URL Query String (?club=auckland)
         const urlParams = new URLSearchParams(window.location.search);
         const clubId = urlParams.get('club') || 'tokoroa';
 
@@ -203,18 +235,24 @@
 
         document.getElementById('clubTitle').textContent = clubNames[clubId] || `KartSport ${clubId.toUpperCase()}`;
 
-        // View toggle buttons
+        // View toggle functionality
         const btnLive = document.getElementById('btnLive');
         const btnStandings = document.getElementById('btnStandings');
+        const liveView = document.getElementById('liveView');
+        const standingsView = document.getElementById('standingsView');
 
         btnLive.addEventListener('click', () => {
             btnLive.classList.add('active');
             btnStandings.classList.remove('active');
+            liveView.classList.add('active');
+            standingsView.classList.remove('active');
         });
 
         btnStandings.addEventListener('click', () => {
             btnStandings.classList.add('active');
             btnLive.classList.remove('active');
+            standingsView.classList.add('active');
+            liveView.classList.remove('active');
         });
 
         // 3. Socket.io Connection & Subscription
@@ -233,7 +271,7 @@
             text.textContent = 'No Racing In Progress';
         });
 
-        // 4. Listen for Dynamic Orbits Stream Status (Green when live / Red when offline)
+        // 4. Dynamic Status (Green when streaming / Red when offline)
         socket.on('orbitStatus', (data) => {
             const badge = document.getElementById('statusBadge');
             const text = document.getElementById('connectionText');
@@ -247,11 +285,37 @@
             }
         });
 
-        // 5. Update Live Timing Board
+        // 5. Populate Class & Heat Select Dropdowns
+        const classSelect = document.getElementById('classSelect');
+        const heatSelect = document.getElementById('heatSelect');
+
+        function updateDropdowns(className, session) {
+            if (className && !Array.from(classSelect.options).some(o => o.value === className)) {
+                const opt = document.createElement('option');
+                opt.value = className;
+                opt.textContent = className;
+                classSelect.appendChild(opt);
+                classSelect.value = className;
+            }
+
+            if (session && !Array.from(heatSelect.options).some(o => o.value === session)) {
+                const opt = document.createElement('option');
+                opt.value = session;
+                opt.textContent = session;
+                heatSelect.appendChild(opt);
+                heatSelect.value = session;
+            }
+        }
+
+        // 6. Update Live Timing Board
         socket.on('heatUpdate', (data) => {
             if (!data) return;
 
-            document.getElementById('sessionLabel').textContent = `${data.className || 'Select Class'} - ${data.session || 'Select Heat / Race'}`;
+            const className = data.className || 'Select Class';
+            const session = data.session || 'Select Heat / Race';
+
+            document.getElementById('sessionLabel').textContent = `${className} - ${session}`;
+            updateDropdowns(className, session);
 
             const tbody = document.getElementById('timingBody');
             if (!data.drivers || data.drivers.length === 0) {
@@ -271,26 +335,31 @@
 
                 let deltaHtml = '<span class="delta same">-</span>';
                 if (diff > 0) {
-                    deltaHtml = `<span class="delta up">▲ ${diff}</span>`;
+                    deltaHtml = `<span class="delta up">▲${diff}</span>`;
                 } else if (diff < 0) {
-                    deltaHtml = `<span class="delta down">▼ ${Math.abs(diff)}</span>`;
+                    deltaHtml = `<span class="delta down">▼${Math.abs(diff)}</span>`;
                 }
 
                 return `
                     <tr>
-                        <td class="pos-col">${currentPos}</td>
+                        <td>
+                            <div class="pos-cell">
+                                <span class="pos-num">${currentPos}</span>
+                                ${deltaHtml}
+                            </div>
+                        </td>
                         <td><span class="kart-num">#${d.number}</span></td>
                         <td><strong>${d.name}</strong></td>
-                        <td>${deltaHtml}</td>
-                        <td>${d.laps}</td>
-                        <td>${d.bestLap}</td>
-                        <td>${d.gap}</td>
+                        <td>${d.laps || 0}</td>
+                        <td>${d.lastLap || d.bestLap || '-'}</td>
+                        <td>${d.bestLap || '-'}</td>
+                        <td>${d.gap || 'LEADER'}</td>
                     </tr>
                 `;
             }).join('');
         });
 
-        // 6. Update Track Pulse Highlights
+        // 7. Update Track Pulse Highlights
         socket.on('pulseEvent', (event) => {
             renderPulseCard(event, true);
         });
