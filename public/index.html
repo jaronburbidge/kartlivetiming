@@ -3,15 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KartLive Timing & Results</title>
+    <title>KartSport Live Timing & Results</title>
     <!-- Import Titillium Web from Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@600&display=swap" rel="stylesheet">
+    <script src="/socket.io/socket.io.js"></script>
     <style>
         :root {
             --bg-dark: #0d1117;
             --panel-bg: #161b22;
             --border-color: #30363d;
             --accent-red: #e63946;
+            --accent-green: #2ea44f;
             --text-main: #f0f6fc;
             --text-muted: #8b949e;
         }
@@ -46,14 +48,49 @@
             justify-content: space-between;
             align-items: center;
             transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
         }
         .club-card:hover {
             border-color: var(--accent-red);
             transform: translateY(-2px);
             background-color: rgba(22, 27, 34, 0.8);
         }
+        .club-info { display: flex; flex-direction: column; gap: 8px; }
         .club-name { font-weight: 700; font-size: 1rem; }
-        .club-arrow { color: var(--accent-red); font-weight: bold; }
+        .club-arrow { color: var(--accent-red); font-weight: bold; font-size: 1.2rem; }
+
+        /* Racing Status Badge */
+        .racing-badge {
+            display: none;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75rem;
+            background: rgba(46, 164, 79, 0.15);
+            border: 1px solid var(--accent-green);
+            padding: 3px 8px;
+            border-radius: 12px;
+            color: var(--accent-green);
+            font-weight: 600;
+            width: fit-content;
+        }
+        .racing-badge.active {
+            display: flex;
+        }
+        .racing-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: var(--accent-green);
+            box-shadow: 0 0 6px var(--accent-green);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
 
         footer { text-align: center; padding: 20px; font-size: 0.85rem; color: var(--text-muted); border-top: 1px solid var(--border-color); background-color: var(--panel-bg); }
 
@@ -66,55 +103,115 @@
 <body>
 
     <header>
-        <h1>KartLive Live Timing Platform</h1>
-        <p>Select your club to view live race info and day points standings</p>
+        <h1>KartSport Live Timing</h1>
+        <p>Select your club to view live race telemetry and day points standings</p>
     </header>
 
     <div class="container">
         <div class="section-title">Select Racing Club</div>
-        <div class="clubs-grid">
-            <a href="/results.html?club=whangarei" class="club-card">
-                <span class="club-name">KartSport Whangarei</span>
+        <div class="clubs-grid" id="clubsGrid">
+            <!-- Club cards are dynamically mapped or listed with unique IDs -->
+            <a href="/results.html?club=whangarei" class="club-card" data-club="whangarei">
+                <div class="club-info">
+                    <span class="club-name">KartSport Whangarei</span>
+                    <div class="racing-badge"><span class="racing-dot"></span>Racing in Progress</div>
+                </div>
                 <span class="club-arrow">&rarr;</span>
             </a>
-            <a href="/results.html?club=auckland" class="club-card">
-                <span class="club-name">KartSport Auckland</span>
+            <a href="/results.html?club=auckland" class="club-card" data-club="auckland">
+                <div class="club-info">
+                    <span class="club-name">KartSport Auckland</span>
+                    <div class="racing-badge"><span class="racing-dot"></span>Racing in Progress</div>
+                </div>
                 <span class="club-arrow">&rarr;</span>
             </a>
-            <a href="/results.html?club=hamilton" class="club-card">
-                <span class="club-name">KartSport Hamilton</span>
+            <a href="/results.html?club=hamilton" class="club-card" data-club="hamilton">
+                <div class="club-info">
+                    <span class="club-name">KartSport Hamilton</span>
+                    <div class="racing-badge"><span class="racing-dot"></span>Racing in Progress</div>
+                </div>
                 <span class="club-arrow">&rarr;</span>
             </a>
-            <a href="/results.html?club=tokoroa" class="club-card">
-                <span class="club-name">KartSport Tokoroa</span>
+            <a href="/results.html?club=tokoroa" class="club-card" data-club="tokoroa">
+                <div class="club-info">
+                    <span class="club-name">KartSport Tokoroa</span>
+                    <div class="racing-badge"><span class="racing-dot"></span>Racing in Progress</div>
+                </div>
                 <span class="club-arrow">&rarr;</span>
             </a>
-            <a href="/results.html?club=bop" class="club-card">
-                <span class="club-name">KartSport Bay of Plenty</span>
+            <a href="/results.html?club=bop" class="club-card" data-club="bop">
+                <div class="club-info">
+                    <span class="club-name">KartSport Bay of Plenty</span>
+                    <div class="racing-badge"><span class="racing-dot"></span>Racing in Progress</div>
+                </div>
                 <span class="club-arrow">&rarr;</span>
             </a>
-            <a href="/results.html?club=ebop" class="club-card">
-                <span class="club-name">KartSport Eastern Bay of Plenty</span>
+            <a href="/results.html?club=ebop" class="club-card" data-club="ebop">
+                <div class="club-info">
+                    <span class="club-name">KartSport Eastern Bay of Plenty</span>
+                    <div class="racing-badge"><span class="racing-dot"></span>Racing in Progress</div>
+                </div>
                 <span class="club-arrow">&rarr;</span>
             </a>
-            <a href="/results.html?club=taranaki" class="club-card">
-                <span class="club-name">KartSport Taranaki</span>
+            <a href="/results.html?club=taranaki" class="club-card" data-club="taranaki">
+                <div class="club-info">
+                    <span class="club-name">KartSport Taranaki</span>
+                    <div class="racing-badge"><span class="racing-dot"></span>Racing in Progress</div>
+                </div>
                 <span class="club-arrow">&rarr;</span>
             </a>
-            <a href="/results.html?club=manawatu" class="club-card">
-                <span class="club-name">KartSport Manawatu</span>
+            <a href="/results.html?club=manawatu" class="club-card" data-club="manawatu">
+                <div class="club-info">
+                    <span class="club-name">KartSport Manawatu</span>
+                    <div class="racing-badge"><span class="racing-dot"></span>Racing in Progress</div>
+                </div>
                 <span class="club-arrow">&rarr;</span>
             </a>
-            <a href="/results.html?club=wellington" class="club-card">
-                <span class="club-name">KartSport Wellington</span>
+            <a href="/results.html?club=wellington" class="club-card" data-club="wellington">
+                <div class="club-info">
+                    <span class="club-name">KartSport Wellington</span>
+                    <div class="racing-badge"><span class="racing-dot"></span>Racing in Progress</div>
+                </div>
                 <span class="club-arrow">&rarr;</span>
             </a>
         </div>
     </div>
 
     <footer>
-        &copy; KartLive Timing and Results Platform
+        &copy; KartSport New Zealand Live Timing Platform
     </footer>
 
+    <script>
+        const socket = io();
+
+        // Listen for live status events sent from the server for each club room
+        const clubs = ['whangarei', 'auckland', 'hamilton', 'tokoroa', 'bop', 'ebop', 'taranaki', 'manawatu', 'wellington'];
+
+        clubs.forEach(clubId => {
+            // Join all club rooms briefly on the index page to receive their orbit status broadcasts
+            socket.emit('joinClub', clubId);
+        });
+
+        socket.on('orbitStatus', (data) => {
+            // Assuming the server broadcasts club-specific status or includes club info. 
+            // If your server sends global status per room connection, you can track it via socket context or update your server handler to pass { clubId, isLive }.
+            // Alternatively, handling individual room status updates:
+        });
+
+        // Robust listener if server broadcasts status with club identifier:
+        socket.on('clubStatusUpdate', (statusData) => {
+            // statusData format expected: { clubId: 'tokoroa', isLive: true }
+            if (!statusData) return;
+            const card = document.querySelector(`[data-club="${statusData.clubId}"]`);
+            if (card) {
+                const badge = card.querySelector('.racing-badge');
+                if (statusData.isLive) {
+                    badge.classList.add('active');
+                } else {
+                    badge.classList.remove('active');
+                }
+            }
+        });
+    </script>
 </body>
 </html>
