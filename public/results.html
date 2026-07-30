@@ -1,503 +1,100 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KartSport Live Timing & Results</title>
-    <!-- Import Titillium Web from Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@600&display=swap" rel="stylesheet">
-    <script src="/socket.io/socket.io.js"></script>
-    <style>
-        :root {
-            --bg-dark: #0d1117;
-            --panel-bg: #161b22;
-            --border-color: #30363d;
-            --accent-red: #e63946;
-            --accent-green: #2ea44f;
-            --accent-gold: #ffd700;
-            --accent-silver: #c0c0c0;
-            --accent-bronze: #cd7f32;
-            --text-main: #f0f6fc;
-            --text-muted: #8b949e;
+<script>
+    // ... (keep your existing urlParams, socket connection, and tab switching logic) ...
+
+    let dayStandingsStore = {};
+    const classSelect = document.getElementById('classSelect');
+
+    classSelect.addEventListener('change', () => {
+        renderDynamicStandings();
+    });
+
+    function addClassOption(className) {
+        if (!className) return;
+        if (!Array.from(classSelect.options).some(o => o.value === className)) {
+            const opt = document.createElement('option');
+            opt.value = className;
+            opt.textContent = className;
+            classSelect.appendChild(opt);
+        }
+    }
+
+    // Listen for incoming standings / results updates from the bridge/backend
+    socket.on('standingsUpdate', (standingsData) => {
+        if (standingsData) {
+            dayStandingsStore = standingsData;
+            Object.keys(standingsData).forEach(cls => addClassOption(cls));
+            renderDynamicStandings();
+        }
+    });
+
+    /**
+     * Dynamically discovers all completed sessions (e.g., Qualifying, Heats, Prefinal, Final)
+     * and builds table headers/rows with an overall Total Points summary column.
+     */
+    function renderDynamicStandings() {
+        const selectedClass = classSelect.value;
+        const standingsBody = document.getElementById('standingsBody');
+        const timingTableHead = document.querySelector('#standingsView .timing-table thead');
+
+        if (!dayStandingsStore || Object.keys(dayStandingsStore).length === 0) {
+            standingsBody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--text-muted); padding: 40px;">No day points recorded yet. Points update as heats finish.</td></tr>`;
+            return;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background-color: var(--bg-dark); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
+        const activeClassKey = (selectedClass && selectedClass !== 'ALL') ? selectedClass : Object.keys(dayStandingsStore)[0];
+        const classDrivers = dayStandingsStore[activeClassKey] || [];
 
-        /* Header */
-        header { background-color: var(--panel-bg); border-bottom: 1px solid var(--border-color); padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; }
-        .brand h1 { 
-            font-family: 'Titillium Web', sans-serif;
-            font-weight: 600;
-            font-size: 1.5rem; 
-            text-transform: uppercase; 
-            color: var(--accent-red); 
-            letter-spacing: 1px; 
-        }
-        .brand p { font-size: 0.85rem; color: var(--text-muted); }
-        
-        /* Dynamic Status Badge */
-        .status-badge { 
-            display: flex; 
-            align-items: center; 
-            gap: 8px; 
-            font-size: 0.85rem; 
-            background: rgba(230, 57, 70, 0.15); 
-            border: 1px solid var(--accent-red); 
-            padding: 6px 12px; 
-            border-radius: 20px; 
-            color: var(--accent-red); 
-            font-weight: 600;
-            transition: all 0.3s ease;
-            white-space: nowrap;
-        }
-        .status-badge.live {
-            background: rgba(46, 164, 79, 0.15); 
-            border-color: var(--accent-green); 
-            color: var(--accent-green); 
-        }
-        .status-dot { 
-            width: 8px; 
-            height: 8px; 
-            border-radius: 50%; 
-            background-color: var(--accent-red); 
-            box-shadow: 0 0 8px var(--accent-red); 
-            transition: all 0.3s ease;
-        }
-        .status-badge.live .status-dot {
-            background-color: var(--accent-green); 
-            box-shadow: 0 0 8px var(--accent-green); 
+        if (classDrivers.length === 0) {
+            standingsBody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--text-muted); padding: 40px;">Select a class to view standings.</td></tr>`;
+            return;
         }
 
-        /* Toolbar & Controls */
-        .toolbar { padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; background-color: rgba(22, 27, 34, 0.5); border-bottom: 1px solid var(--border-color); }
-        .nav-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
-        .btn-nav { background: var(--panel-bg); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s; }
-        .btn-nav.active { background: var(--accent-red); border-color: var(--accent-red); color: #fff; }
-        .btn-nav:hover:not(.active) { border-color: var(--text-muted); }
-
-        .select-group { display: flex; gap: 10px; flex-wrap: wrap; }
-        select { background: var(--panel-bg); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 16px; border-radius: 6px; font-size: 0.9rem; outline: none; cursor: pointer; min-width: 160px; }
-
-        /* Main Container Grid */
-        .container { padding: 20px; flex: 1; max-width: 1600px; margin: 0 auto; width: 100%; display: grid; grid-template-columns: 1fr 340px; gap: 20px; transition: grid-template-columns 0.3s ease; }
-        .container.no-pulse { grid-template-columns: 1fr; }
-
-        /* Panels */
-        .panel { background-color: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; display: flex; flex-direction: column; overflow-x: auto; }
-        .session-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color); }
-        .session-title { 
-            font-family: 'Titillium Web', sans-serif;
-            font-weight: 600;
-            font-size: 1.2rem; 
-            color: var(--accent-gold); 
-        }
-
-        /* Track Pulse Sidebar */
-        .pulse-panel { background-color: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; display: flex; flex-direction: column; }
-        .pulse-header { font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 8px; }
-        .pulse-list { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; max-height: 600px; }
-        .pulse-card { background: var(--bg-dark); border-left: 4px solid var(--accent-red); padding: 10px 12px; border-radius: 4px; font-size: 0.85rem; }
-        .pulse-card.fastest-lap { border-left-color: var(--accent-gold); }
-        .pulse-time { font-size: 0.7rem; color: var(--text-muted); float: right; }
-        .pulse-title { font-weight: 700; margin-bottom: 4px; }
-
-        /* Podium Cards */
-        .podium-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px; }
-        .podium-card { background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; text-align: center; }
-        .podium-card.p1 { border-color: var(--accent-gold); box-shadow: 0 0 12px rgba(255, 215, 0, 0.15); }
-        .podium-card.p2 { border-color: var(--accent-silver); }
-        .podium-card.p3 { border-color: var(--accent-bronze); }
-        .podium-place { font-size: 0.8rem; font-weight: 800; text-transform: uppercase; margin-bottom: 4px; }
-        .p1 .podium-place { color: var(--accent-gold); }
-        .p2 .podium-place { color: var(--accent-silver); }
-        .p3 .podium-place { color: var(--accent-bronze); }
-        .podium-driver { font-size: 1.1rem; font-weight: 700; margin-bottom: 2px; }
-        .podium-pts { font-size: 0.85rem; color: var(--text-muted); }
-
-        /* Tables */
-        .timing-table { width: 100%; border-collapse: collapse; text-align: left; min-width: 550px; }
-        .timing-table th { padding: 12px; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; border-bottom: 1px solid var(--border-color); }
-        .timing-table td { padding: 14px 12px; border-bottom: 1px solid var(--border-color); font-size: 0.95rem; }
-        .timing-table tr:hover { background-color: rgba(255, 255, 255, 0.02); }
-
-        .pos-cell { display: flex; align-items: center; gap: 8px; }
-        .pos-num { font-weight: 800; font-size: 1.1rem; min-width: 24px; }
-        .kart-num { font-weight: 700; color: var(--accent-gold); background: rgba(255, 215, 0, 0.1); padding: 4px 8px; border-radius: 4px; display: inline-block; }
-        .total-pts { font-weight: 800; color: var(--accent-gold); font-size: 1.05rem; }
-
-        .delta { font-weight: 700; font-size: 0.75rem; padding: 2px 5px; border-radius: 4px; display: inline-block; }
-        .delta.up { color: var(--accent-green); background: rgba(46, 164, 79, 0.15); }
-        .delta.down { color: var(--accent-red); background: rgba(230, 57, 70, 0.15); }
-        .delta.same { color: var(--text-muted); }
-
-        .view-panel { display: none; }
-        .view-panel.active { display: block; }
-
-        /* Responsive Breakpoints */
-        @media (max-width: 1024px) {
-            .container { grid-template-columns: 1fr !important; }
-            .pulse-panel { display: none !important; }
-        }
-
-        @media (max-width: 768px) {
-            header { flex-direction: column; align-items: flex-start; gap: 12px; padding: 12px 15px; }
-            .brand h1 { font-size: 1.2rem; }
-            .toolbar { flex-direction: column; align-items: stretch; padding: 12px 15px; }
-            .nav-buttons, .select-group { width: 100%; justify-content: space-between; }
-            .btn-nav, select { flex: 1; text-align: center; padding: 10px; }
-            .container { padding: 10px; }
-            .panel { padding: 12px; }
-            .podium-container { grid-template-columns: 1fr; gap: 10px; }
-            .timing-table th, .timing-table td { padding: 10px 8px; font-size: 0.85rem; }
-        }
-    </style>
-</head>
-<body>
-
-    <header>
-        <div class="brand">
-            <h1 id="clubTitle">KartSport Telemetry</h1>
-            <p>Live Race Telemetry & Day Standings</p>
-        </div>
-        <div class="status-badge" id="statusBadge">
-            <span class="status-dot"></span>
-            <span id="connectionText">No Racing In Progress</span>
-        </div>
-    </header>
-
-    <!-- Toolbar -->
-    <div class="toolbar">
-        <div class="nav-buttons">
-            <button class="btn-nav active" id="btnLive">🚨 Live Telemetry</button>
-            <button class="btn-nav" id="btnStandings">🏆 Day Points Standings</button>
-        </div>
-        <div class="select-group">
-            <select id="classSelect">
-                <option value="ALL">-- Select Class --</option>
-            </select>
-            <select id="heatSelect">
-                <option value="ALL">-- Heat / Race --</option>
-                <option value="Heat 1">Heat 1</option>
-                <option value="Heat 2">Heat 2</option>
-                <option value="Heat 3">Heat 3</option>
-                <option value="Pre-Final">Pre-Final</option>
-                <option value="Final">Final</option>
-            </select>
-        </div>
-    </div>
-
-    <div class="container" id="mainContainer">
-        <!-- Main Panel -->
-        <div class="panel">
-            <div class="session-header">
-                <div class="session-title" id="sessionLabel">Select Class</div>
-            </div>
-
-            <!-- Tab 1: Live Telemetry Table -->
-            <div id="liveView" class="view-panel active">
-                <table class="timing-table">
-                    <thead>
-                        <tr>
-                            <th>Pos</th>
-                            <th>Kart #</th>
-                            <th>Driver</th>
-                            <th>Laps</th>
-                            <th>Last Lap</th>
-                            <th>Best Lap</th>
-                            <th>Gap</th>
-                        </tr>
-                    </thead>
-                    <tbody id="timingBody">
-                        <tr>
-                            <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 40px;">
-                                Waiting for live race telemetry feed...
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Tab 2: Day Points Standings View -->
-            <div id="standingsView" class="view-panel">
-                <div id="podiumHeader" class="podium-container" style="display: none;">
-                    <div class="podium-card p2">
-                        <div class="podium-place">🥈 2nd Place</div>
-                        <div class="podium-driver" id="p2Name">-</div>
-                        <div class="podium-pts" id="p2Pts">0 pts</div>
-                    </div>
-                    <div class="podium-card p1">
-                        <div class="podium-place">🏆 Day Champion (1st)</div>
-                        <div class="podium-driver" id="p1Name">-</div>
-                        <div class="podium-pts" id="p1Pts">0 pts</div>
-                    </div>
-                    <div class="podium-card p3">
-                        <div class="podium-place">🥉 3rd Place</div>
-                        <div class="podium-driver" id="p3Name">-</div>
-                        <div class="podium-pts" id="p3Pts">0 pts</div>
-                    </div>
-                </div>
-
-                <table class="timing-table">
-                    <thead>
-                        <tr>
-                            <th>Pos</th>
-                            <th>Kart #</th>
-                            <th>Driver</th>
-                            <th>H1</th>
-                            <th>H2</th>
-                            <th>H3</th>
-                            <th>Pre-Final</th>
-                            <th>Final</th>
-                            <th>Total Pts</th>
-                        </tr>
-                    </thead>
-                    <tbody id="standingsBody">
-                        <tr>
-                            <td colspan="9" style="text-align: center; color: var(--text-muted); padding: 40px;">
-                                Select a class above to view Day Points Standings.
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Track Pulse Sidebar -->
-        <div class="pulse-panel" id="pulseSidebar">
-            <div class="pulse-header">⚡ Track Pulse</div>
-            <div class="pulse-list" id="pulseList">
-                <div style="color: var(--text-muted); font-size: 0.85rem; text-align: center; padding: 20px;">
-                    No race highlights yet.
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const clubId = urlParams.get('club') || 'tokoroa';
-
-        const clubNames = {
-            'whangarei': 'KartSport Whangarei',
-            'auckland': 'KartSport Auckland Mt Wellington',
-            'hamilton': 'KartSport Hamilton',
-            'tokoroa': 'KartSport Tokoroa',
-            'rotorua': 'KartSport Rotorua',
-            'bop': 'KartSport Bay of Plenty',
-            'ebop': 'KartSport Eastern Bay of Plenty',
-            'hb': 'KartSport Hawkes Bay',
-            'taranaki': 'KartSport Taranaki',
-            'manawatu': 'KartSport Manawatu',
-            'wellington': 'KartSport Wellington',
-            'nelson': 'KartSport Nelson',
-            'marlborough': 'KartSport Marlborough',
-            'westland': 'KartSport Westland',
-            'canterbury': 'KartSport Canterbury',
-            'southland': 'KartSport Southland'
-        };
-
-        document.getElementById('clubTitle').textContent = clubNames[clubId] || `KartSport ${clubId.toUpperCase()}`;
-
-        const btnLive = document.getElementById('btnLive');
-        const btnStandings = document.getElementById('btnStandings');
-        const liveView = document.getElementById('liveView');
-        const standingsView = document.getElementById('standingsView');
-        const pulseSidebar = document.getElementById('pulseSidebar');
-        const heatSelect = document.getElementById('heatSelect');
-        const mainContainer = document.getElementById('mainContainer');
-
-        btnLive.addEventListener('click', () => {
-            btnLive.classList.add('active');
-            btnStandings.classList.remove('active');
-            liveView.classList.add('active');
-            standingsView.classList.remove('active');
-            pulseSidebar.style.display = 'flex';
-            heatSelect.style.display = 'inline-block';
-            mainContainer.classList.remove('no-pulse');
-        });
-
-        btnStandings.addEventListener('click', () => {
-            btnStandings.classList.add('active');
-            btnLive.classList.remove('active');
-            standingsView.classList.add('active');
-            liveView.classList.remove('active');
-            pulseSidebar.style.display = 'none';
-            heatSelect.style.display = 'none';
-            mainContainer.classList.add('no-pulse');
-            renderStandings();
-        });
-
-        const socket = io();
-
-        socket.on('connect', () => {
-            socket.emit('joinClub', clubId);
-        });
-
-        socket.on('orbitStatus', (data) => {
-            const badge = document.getElementById('statusBadge');
-            const text = document.getElementById('connectionText');
-
-            if (data && data.isLive) {
-                badge.classList.add('live');
-                text.textContent = 'Live • Connected';
-            } else {
-                badge.classList.remove('live');
-                text.textContent = 'No Racing In Progress';
+        // 1. Discover all unique session types sent by Orbits dynamically for this class
+        const sessionSet = new Set();
+        classDrivers.forEach(driver => {
+            if (driver.sessions) {
+                Object.keys(driver.sessions).forEach(sName => sessionSet.add(sName));
             }
         });
+        const completedSessions = Array.from(sessionSet); // e.g. ["Qualifying", "Heat 1", "Heat 2", "Final"]
 
-        let dayStandingsStore = {};
-        const classSelect = document.getElementById('classSelect');
-
-        classSelect.addEventListener('change', () => {
-            renderStandings();
+        // 2. Build Dynamic Table Header matching whatever Orbits sent
+        let headerHTML = `<tr><th>Pos</th><th>Kart #</th><th>Driver</th>`;
+        completedSessions.forEach(session => {
+            headerHTML += `<th>${session}</th>`;
         });
+        headerHTML += `<th>Total Pts</th></tr>`;
+        timingTableHead.innerHTML = headerHTML;
 
-        function addClassOption(className) {
-            if (!className) return;
-            if (!Array.from(classSelect.options).some(o => o.value === className)) {
-                const opt = document.createElement('option');
-                opt.value = className;
-                opt.textContent = className;
-                classSelect.appendChild(opt);
-            }
-        }
-
-        socket.on('heatUpdate', (data) => {
-            if (!data) return;
-
-            const className = data.className || 'Select Class';
-            const session = data.session || '';
-
-            document.getElementById('sessionLabel').textContent = session ? `${className} - ${session}` : className;
-            addClassOption(className);
-
-            const tbody = document.getElementById('timingBody');
-            if (!data.drivers || data.drivers.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 40px;">No active drivers on track for this session.</td></tr>`;
-                return;
-            }
-
-            tbody.innerHTML = data.drivers.map((d, index) => {
-                const currentPos = index + 1;
-                const startPos = d.startPos || currentPos;
-                const diff = startPos - currentPos;
-
-                let deltaHtml = '<span class="delta same">-</span>';
-                if (diff > 0) deltaHtml = `<span class="delta up">▲${diff}</span>`;
-                else if (diff < 0) deltaHtml = `<span class="delta down">▼${Math.abs(diff)}</span>`;
-
-                return `
-                    <tr>
-                        <td>
-                            <div class="pos-cell">
-                                <span class="pos-num">${currentPos}</span>
-                                ${deltaHtml}
-                            </div>
-                        </td>
-                        <td><span class="kart-num">#${d.number}</span></td>
-                        <td><strong>${d.name}</strong></td>
-                        <td>${d.laps || 0}</td>
-                        <td>${d.lastLap || d.bestLap || '-'}</td>
-                        <td>${d.bestLap || '-'}</td>
-                        <td>${d.gap || 'LEADER'}</td>
-                    </tr>
-                `;
+        // 3. Calculate points and sort drivers by overall total points summary descending
+        const processedRows = classDrivers.map(driver => {
+            let totalPts = 0;
+            const sessionCells = completedSessions.map(session => {
+                const sData = driver.sessions?.[session] || { position: '-', points: 0 };
+                const pts = sData.points || 0;
+                totalPts += pts;
+                return `<td>${sData.position} <span style="font-size:0.8rem; color:var(--text-muted);">(${pts}p)</span></td>`;
             }).join('');
+
+            return {
+                number: driver.number,
+                name: driver.name,
+                sessionCells,
+                totalPts
+            };
         });
 
-        socket.on('pulseEvent', (item) => addPulseItem(item));
-        socket.on('pulseHistory', (items) => {
-            const list = document.getElementById('pulseList');
-            list.innerHTML = '';
-            if (items && items.length > 0) items.forEach(addPulseItem);
-        });
+        processedRows.sort((a, b) => b.totalPts - a.totalPts);
 
-        function addPulseItem(item) {
-            const list = document.getElementById('pulseList');
-            if (list.children.length === 1 && list.children[0].textContent.includes('No race highlights')) {
-                list.innerHTML = '';
-            }
-            const card = document.createElement('div');
-            card.className = `pulse-card ${item.badge || ''}`;
-            card.innerHTML = `
-                <span class="pulse-time">${item.timestamp || ''}</span>
-                <div class="pulse-title">${item.title}</div>
-                <div>${item.text}</div>
-            `;
-            list.prepend(card);
-        }
-
-        socket.on('standingsUpdate', (standingsData) => {
-            if (standingsData) {
-                dayStandingsStore = standingsData;
-                Object.keys(standingsData).forEach(cls => addClassOption(cls));
-                renderStandings();
-            }
-        });
-
-        function renderStandings() {
-            const selectedClass = classSelect.value;
-            const standingsBody = document.getElementById('standingsBody');
-            const podiumHeader = document.getElementById('podiumHeader');
-
-            if (!dayStandingsStore || Object.keys(dayStandingsStore).length === 0) {
-                standingsBody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 40px;">No day points recorded yet. Points update as heats finish.</td></tr>`;
-                podiumHeader.style.display = 'none';
-                return;
-            }
-
-            const activeClassKey = (selectedClass && selectedClass !== 'ALL') ? selectedClass : Object.keys(dayStandingsStore)[0];
-            const classDrivers = dayStandingsStore[activeClassKey] || [];
-
-            if (classDrivers.length === 0) {
-                standingsBody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 40px;">Select a class to view standings.</td></tr>`;
-                podiumHeader.style.display = 'none';
-                return;
-            }
-
-            const allRacesCompleted = classDrivers.every(d => 
-                d.h1 !== undefined && d.h1 !== '-' &&
-                d.h2 !== undefined && d.h2 !== '-' &&
-                d.h3 !== undefined && d.h3 !== '-' &&
-                d.preFinal !== undefined && d.preFinal !== '-' &&
-                d.final !== undefined && d.final !== '-'
-            );
-
-            classDrivers.sort((a, b) => b.totalPts - a.totalPts);
-
-            if (allRacesCompleted && classDrivers.length >= 1) {
-                podiumHeader.style.display = 'grid';
-                document.getElementById('p1Name').textContent = `#${classDrivers[0].number} ${classDrivers[0].name}`;
-                document.getElementById('p1Pts').textContent = `${classDrivers[0].totalPts} pts`;
-
-                if (classDrivers[1]) {
-                    document.getElementById('p2Name').textContent = `#${classDrivers[1].number} ${classDrivers[1].name}`;
-                    document.getElementById('p2Pts').textContent = `${classDrivers[1].totalPts} pts`;
-                }
-                if (classDrivers[2]) {
-                    document.getElementById('p3Name').textContent = `#${classDrivers[2].number} ${classDrivers[2].name}`;
-                    document.getElementById('p3Pts').textContent = `${classDrivers[2].totalPts} pts`;
-                }
-            } else {
-                podiumHeader.style.display = 'none';
-            }
-
-            standingsBody.innerHTML = classDrivers.map((d, idx) => `
-                <tr>
-                    <td style="font-weight: 800;">${idx + 1}</td>
-                    <td><span class="kart-num">#${d.number}</span></td>
-                    <td><strong>${d.name}</strong></td>
-                    <td>${d.h1 !== undefined ? d.h1 : '-'}</td>
-                    <td>${d.h2 !== undefined ? d.h2 : '-'}</td>
-                    <td>${d.h3 !== undefined ? d.h3 : '-'}</td>
-                    <td>${d.preFinal !== undefined ? d.preFinal : '-'}</td>
-                    <td>${d.final !== undefined ? d.final : '-'}</td>
-                    <td class="total-pts">${d.totalPts || 0}</td>
-                </tr>
-            `).join('');
-        }
-    </script>
-</body>
-</html>
+        // 4. Render Table Body
+        standingsBody.innerHTML = processedRows.map((d, idx) => `
+            <tr>
+                <td style="font-weight: 800;">${idx + 1}</td>
+                <td><span class="kart-num">#${d.number}</span></td>
+                <td><strong>${d.name}</strong></td>
+                ${d.sessionCells}
+                <td class="total-pts">${d.totalPts} pts</td>
+            </tr>
+        `).join('');
+    }
+</script>
