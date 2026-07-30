@@ -179,11 +179,6 @@
             </select>
             <select id="heatSelect">
                 <option value="ALL">-- Heat / Race --</option>
-                <option value="Heat 1">Heat 1</option>
-                <option value="Heat 2">Heat 2</option>
-                <option value="Heat 3">Heat 3</option>
-                <option value="Pre-Final">Pre-Final</option>
-                <option value="Final">Final</option>
             </select>
         </div>
     </div>
@@ -301,6 +296,7 @@
         const standingsView = document.getElementById('standingsView');
         const pulseSidebar = document.getElementById('pulseSidebar');
         const heatSelect = document.getElementById('heatSelect');
+        const classSelect = document.getElementById('classSelect');
         const mainContainer = document.getElementById('mainContainer');
 
         btnLive.addEventListener('click', () => {
@@ -344,7 +340,6 @@
         });
 
         let dayStandingsStore = {};
-        const classSelect = document.getElementById('classSelect');
 
         classSelect.addEventListener('change', () => {
             renderStandings();
@@ -360,6 +355,16 @@
             }
         }
 
+        function addHeatOption(sessionName) {
+            if (!sessionName) return;
+            if (!Array.from(heatSelect.options).some(o => o.value === sessionName)) {
+                const opt = document.createElement('option');
+                opt.value = sessionName;
+                opt.textContent = sessionName;
+                heatSelect.appendChild(opt);
+            }
+        }
+
         socket.on('heatUpdate', (data) => {
             if (!data) return;
 
@@ -368,6 +373,7 @@
 
             document.getElementById('sessionLabel').textContent = session ? `${className} - ${session}` : className;
             addClassOption(className);
+            addHeatOption(session);
 
             const tbody = document.getElementById('timingBody');
             if (!data.drivers || data.drivers.length === 0) {
@@ -428,7 +434,16 @@
         socket.on('standingsUpdate', (standingsData) => {
             if (standingsData) {
                 dayStandingsStore = standingsData;
-                Object.keys(standingsData).forEach(cls => addClassOption(cls));
+                Object.keys(standingsData).forEach(cls => {
+                    addClassOption(cls);
+                    const drivers = standingsData[cls] || [];
+                    drivers.forEach(d => {
+                        const sessionsObj = d.sessions || d.heats;
+                        if (sessionsObj) {
+                            Object.keys(sessionsObj).forEach(s => addHeatOption(s));
+                        }
+                    });
+                });
                 renderStandings();
             }
         });
@@ -454,7 +469,6 @@
                 return;
             }
 
-            // Dynamically discover all completed sessions/heats from driver objects
             const sessionSet = new Set();
             classDrivers.forEach(driver => {
                 const sessionsObj = driver.sessions || driver.heats;
@@ -464,7 +478,6 @@
             });
             const completedSessions = Array.from(sessionSet);
 
-            // Build dynamic header columns matching whichever races/heats exist
             if (standingsTableHead) {
                 let headerHTML = `<tr><th>Pos</th><th>Kart #</th><th>Driver</th>`;
                 completedSessions.forEach(session => {
@@ -474,7 +487,6 @@
                 standingsTableHead.innerHTML = headerHTML;
             }
 
-            // Process rows, compute total points across discovered sessions, and sort descending
             const processedRows = classDrivers.map(driver => {
                 let totalPts = 0;
                 const sessionsObj = driver.sessions || driver.heats || {};
@@ -488,7 +500,6 @@
                     return `<td>${pos} <span class="points-sub">(${pts}p)</span></td>`;
                 }).join('');
 
-                // Fallback to pre-calculated totalPts if provided directly on driver object
                 const finalTotalPts = (driver.totalPts !== undefined && completedSessions.length === 0) ? driver.totalPts : totalPts;
 
                 return {
@@ -524,7 +535,6 @@
                 podiumHeader.style.display = 'none';
             }
 
-            const colSpanCount = 4 + completedSessions.length;
             standingsBody.innerHTML = processedRows.map((d, idx) => `
                 <tr>
                     <td style="font-weight: 800;">${idx + 1}</td>
