@@ -125,6 +125,7 @@
         .pos-num { font-weight: 800; font-size: 1.1rem; min-width: 24px; }
         .kart-num { font-weight: 700; color: var(--accent-gold); background: rgba(255, 215, 0, 0.1); padding: 4px 8px; border-radius: 4px; display: inline-block; }
         .total-pts { font-weight: 800; color: var(--accent-gold); font-size: 1.05rem; }
+        .points-sub { font-size: 0.75rem; color: var(--text-muted); display: block; }
 
         .delta { font-weight: 700; font-size: 0.75rem; padding: 2px 5px; border-radius: 4px; display: inline-block; }
         .delta.up { color: var(--accent-green); background: rgba(46, 164, 79, 0.15); }
@@ -178,11 +179,6 @@
             </select>
             <select id="heatSelect">
                 <option value="ALL">-- Heat / Race --</option>
-                <option value="Heat 1">Heat 1</option>
-                <option value="Heat 2">Heat 2</option>
-                <option value="Heat 3">Heat 3</option>
-                <option value="Pre-Final">Pre-Final</option>
-                <option value="Final">Final</option>
             </select>
         </div>
     </div>
@@ -238,23 +234,18 @@
                     </div>
                 </div>
 
-                <table class="timing-table">
+                <table class="timing-table" id="standingsTable">
                     <thead>
                         <tr>
                             <th>Pos</th>
                             <th>Kart #</th>
                             <th>Driver</th>
-                            <th>H1</th>
-                            <th>H2</th>
-                            <th>H3</th>
-                            <th>Pre-Final</th>
-                            <th>Final</th>
                             <th>Total Pts</th>
                         </tr>
                     </thead>
                     <tbody id="standingsBody">
                         <tr>
-                            <td colspan="9" style="text-align: center; color: var(--text-muted); padding: 40px;">
+                            <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 40px;">
                                 Select a class above to view Day Points Standings.
                             </td>
                         </tr>
@@ -305,6 +296,7 @@
         const standingsView = document.getElementById('standingsView');
         const pulseSidebar = document.getElementById('pulseSidebar');
         const heatSelect = document.getElementById('heatSelect');
+        const classSelect = document.getElementById('classSelect');
         const mainContainer = document.getElementById('mainContainer');
 
         btnLive.addEventListener('click', () => {
@@ -348,7 +340,6 @@
         });
 
         let dayStandingsStore = {};
-        const classSelect = document.getElementById('classSelect');
 
         classSelect.addEventListener('change', () => {
             renderStandings();
@@ -364,6 +355,16 @@
             }
         }
 
+        function addHeatOption(sessionName) {
+            if (!sessionName) return;
+            if (!Array.from(heatSelect.options).some(o => o.value === sessionName)) {
+                const opt = document.createElement('option');
+                opt.value = sessionName;
+                opt.textContent = sessionName;
+                heatSelect.appendChild(opt);
+            }
+        }
+
         socket.on('heatUpdate', (data) => {
             if (!data) return;
 
@@ -372,6 +373,7 @@
 
             document.getElementById('sessionLabel').textContent = session ? `${className} - ${session}` : className;
             addClassOption(className);
+            addHeatOption(session);
 
             const tbody = document.getElementById('timingBody');
             if (!data.drivers || data.drivers.length === 0) {
@@ -432,7 +434,16 @@
         socket.on('standingsUpdate', (standingsData) => {
             if (standingsData) {
                 dayStandingsStore = standingsData;
-                Object.keys(standingsData).forEach(cls => addClassOption(cls));
+                Object.keys(standingsData).forEach(cls => {
+                    addClassOption(cls);
+                    const drivers = standingsData[cls] || [];
+                    drivers.forEach(d => {
+                        const sessionsObj = d.sessions || d.heats;
+                        if (sessionsObj) {
+                            Object.keys(sessionsObj).forEach(s => addHeatOption(s));
+                        }
+                    });
+                });
                 renderStandings();
             }
         });
@@ -440,10 +451,11 @@
         function renderStandings() {
             const selectedClass = classSelect.value;
             const standingsBody = document.getElementById('standingsBody');
+            const standingsTableHead = document.querySelector('#standingsTable thead');
             const podiumHeader = document.getElementById('podiumHeader');
 
             if (!dayStandingsStore || Object.keys(dayStandingsStore).length === 0) {
-                standingsBody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 40px;">No day points recorded yet. Points update as heats finish.</td></tr>`;
+                standingsBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 40px;">No day points recorded yet. Points update as heats finish.</td></tr>`;
                 podiumHeader.style.display = 'none';
                 return;
             }
@@ -451,50 +463,85 @@
             const activeClassKey = (selectedClass && selectedClass !== 'ALL') ? selectedClass : Object.keys(dayStandingsStore)[0];
             const classDrivers = dayStandingsStore[activeClassKey] || [];
 
-            if (classDrivers.length === 0) {
-                standingsBody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 40px;">Select a class to view standings.</td></tr>`;
+            if (!Array.isArray(classDrivers) || classDrivers.length === 0) {
+                standingsBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 40px;">Select a class to view standings.</td></tr>`;
                 podiumHeader.style.display = 'none';
                 return;
             }
 
-            const allRacesCompleted = classDrivers.every(d => 
-                d.h1 !== undefined && d.h1 !== '-' &&
-                d.h2 !== undefined && d.h2 !== '-' &&
-                d.h3 !== undefined && d.h3 !== '-' &&
-                d.preFinal !== undefined && d.preFinal !== '-' &&
-                d.final !== undefined && d.final !== '-'
-            );
-
-            classDrivers.sort((a, b) => b.totalPts - a.totalPts);
-
-            if (allRacesCompleted && classDrivers.length >= 1) {
-                podiumHeader.style.display = 'grid';
-                document.getElementById('p1Name').textContent = `#${classDrivers[0].number} ${classDrivers[0].name}`;
-                document.getElementById('p1Pts').textContent = `${classDrivers[0].totalPts} pts`;
-
-                if (classDrivers[1]) {
-                    document.getElementById('p2Name').textContent = `#${classDrivers[1].number} ${classDrivers[1].name}`;
-                    document.getElementById('p2Pts').textContent = `${classDrivers[1].totalPts} pts`;
+            const sessionSet = new Set();
+            classDrivers.forEach(driver => {
+                const sessionsObj = driver.sessions || driver.heats;
+                if (sessionsObj && typeof sessionsObj === 'object') {
+                    Object.keys(sessionsObj).forEach(sName => sessionSet.add(sName));
                 }
-                if (classDrivers[2]) {
-                    document.getElementById('p3Name').textContent = `#${classDrivers[2].number} ${classDrivers[2].name}`;
-                    document.getElementById('p3Pts').textContent = `${classDrivers[2].totalPts} pts`;
+            });
+            const completedSessions = Array.from(sessionSet);
+
+            if (standingsTableHead) {
+                let headerHTML = `<tr><th>Pos</th><th>Kart #</th><th>Driver</th>`;
+                completedSessions.forEach(session => {
+                    headerHTML += `<th>${session}</th>`;
+                });
+                headerHTML += `<th>Total Pts</th></tr>`;
+                standingsTableHead.innerHTML = headerHTML;
+            }
+
+            const processedRows = classDrivers.map(driver => {
+                let totalPts = 0;
+                const sessionsObj = driver.sessions || driver.heats || {};
+                
+                const sessionCells = completedSessions.map(session => {
+                    const sData = sessionsObj[session] || { position: '-', points: 0 };
+                    const pts = Number(sData.points !== undefined ? sData.points : (driver[session] !== undefined ? driver[session] : 0));
+                    const pos = sData.position !== undefined ? sData.position : (driver[session] !== undefined ? driver[session] : '-');
+                    
+                    if (!isNaN(pts)) totalPts += pts;
+                    return `<td>${pos} <span class="points-sub">(${pts}p)</span></td>`;
+                }).join('');
+
+                const finalTotalPts = (driver.totalPts !== undefined && completedSessions.length === 0) ? driver.totalPts : totalPts;
+
+                return {
+                    number: driver.number || driver.kartNumber || '0',
+                    name: driver.name || driver.driverName || 'Unknown',
+                    sessionCells,
+                    totalPts: finalTotalPts
+                };
+            });
+
+            processedRows.sort((a, b) => b.totalPts - a.totalPts);
+
+            if (processedRows.length >= 1) {
+                podiumHeader.style.display = 'grid';
+                document.getElementById('p1Name').textContent = `#${processedRows[0].number} ${processedRows[0].name}`;
+                document.getElementById('p1Pts').textContent = `${processedRows[0].totalPts} pts`;
+
+                if (processedRows[1]) {
+                    document.getElementById('p2Name').textContent = `#${processedRows[1].number} ${processedRows[1].name}`;
+                    document.getElementById('p2Pts').textContent = `${processedRows[1].totalPts} pts`;
+                } else {
+                    document.getElementById('p2Name').textContent = '-';
+                    document.getElementById('p2Pts').textContent = '0 pts';
+                }
+                if (processedRows[2]) {
+                    document.getElementById('p3Name').textContent = `#${processedRows[2].number} ${processedRows[2].name}`;
+                    document.getElementById('p3Pts').textContent = `${processedRows[2].totalPts} pts`;
+                } else {
+                    document.getElementById('p3Name').textContent = '-';
+                    document.getElementById('p3Pts').textContent = '0 pts';
                 }
             } else {
                 podiumHeader.style.display = 'none';
             }
 
-            standingsBody.innerHTML = classDrivers.map((d, idx) => `
+            standingsBody.innerHTML = processedRows.map((d, idx) => `
                 <tr>
                     <td style="font-weight: 800;">${idx + 1}</td>
                     <td><span class="kart-num">#${d.number}</span></td>
                     <td><strong>${d.name}</strong></td>
-                    <td>${d.h1 !== undefined ? d.h1 : '-'}</td>
-                    <td>${d.h2 !== undefined ? d.h2 : '-'}</td>
-                    <td>${d.h3 !== undefined ? d.h3 : '-'}</td>
-                    <td>${d.preFinal !== undefined ? d.preFinal : '-'}</td>
-                    <td>${d.final !== undefined ? d.final : '-'}</td>
-                    <td class="total-pts">${d.totalPts || 0}</td>
+                    ${d.sessionCells || `<td colspan="${completedSessions.length}" style="color:var(--text-muted);">-</td>`}
+                    <td class="total-pts">${d.totalPts || 0} pts</td>
                 </tr>
             `).join('');
         }
