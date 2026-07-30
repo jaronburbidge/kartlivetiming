@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KartLive Race Event Results</title>
+    <title>KartLive Race Event Results Platform</title>
     <!-- Import Titillium Web from Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@600&display=swap" rel="stylesheet">
     <script src="/socket.io/socket.io.js"></script>
@@ -103,52 +103,23 @@
 <body>
 
     <header>
-        <h1>KartLive Race Event Results</h1>
-        <p>Select your club to view live race information</p>
+        <h1>KartLive Race Event Results Platform</h1>
+        <p>Select your club to view live race telemetry and day points standings</p>
     </header>
 
     <div class="container">
-        <div class="section-title">Select Kart Club</div>
+        <div class="section-title">Select Racing Club</div>
         <div class="clubs-grid" id="clubsGrid">
-            <!-- Club cards are dynamically mapped or listed with unique IDs -->
-            <a href="/results.html?club=whangarei" class="club-card" data-club="whangarei">
+            <a href="/results.html?club=rotorua" class="club-card" data-club="rotorua">
                 <div class="club-info">
-                    <span class="club-name">KartSport Whangarei</span>
+                    <span class="club-name">KartSport Rotorua</span>
                     <div class="racing-badge"><span class="racing-dot"></span>Racing in Progress</div>
                 </div>
                 <span class="club-arrow">&rarr;</span>
             </a>
-            <a href="/results.html?club=auckland" class="club-card" data-club="auckland">
+            <a href="/results.html?club=hb" class="club-card" data-club="hb">
                 <div class="club-info">
-                    <span class="club-name">KartSport Auckland</span>
-                    <div class="racing-badge"><span class="racing-dot"></span>Racing in Progress</div>
-                </div>
-                <span class="club-arrow">&rarr;</span>
-            </a>
-            <a href="/results.html?club=hamilton" class="club-card" data-club="hamilton">
-                <div class="club-info">
-                    <span class="club-name">KartSport Hamilton</span>
-                    <div class="racing-badge"><span class="racing-dot"></span>Racing in Progress</div>
-                </div>
-                <span class="club-arrow">&rarr;</span>
-            </a>
-            <a href="/results.html?club=tokoroa" class="club-card" data-club="tokoroa">
-                <div class="club-info">
-                    <span class="club-name">KartSport Tokoroa</span>
-                    <div class="racing-badge"><span class="racing-dot"></span>Racing in Progress</div>
-                </div>
-                <span class="club-arrow">&rarr;</span>
-            </a>
-            <a href="/results.html?club=bop" class="club-card" data-club="bop">
-                <div class="club-info">
-                    <span class="club-name">KartSport Bay of Plenty</span>
-                    <div class="racing-badge"><span class="racing-dot"></span>Racing in Progress</div>
-                </div>
-                <span class="club-arrow">&rarr;</span>
-            </a>
-            <a href="/results.html?club=ebop" class="club-card" data-club="ebop">
-                <div class="club-info">
-                    <span class="club-name">KartSport Eastern Bay of Plenty</span>
+                    <span class="club-name">KartSport Hawke's Bay</span>
                     <div class="racing-badge"><span class="racing-dot"></span>Racing in Progress</div>
                 </div>
                 <span class="club-arrow">&rarr;</span>
@@ -160,16 +131,37 @@
                 </div>
                 <span class="club-arrow">&rarr;</span>
             </a>
-            <a href="/results.html?club=manawatu" class="club-card" data-club="manawatu">
+            <a href="/results.html?club=nelson" class="club-card" data-club="nelson">
                 <div class="club-info">
-                    <span class="club-name">KartSport Manawatu</span>
+                    <span class="club-name">KartSport Nelson</span>
                     <div class="racing-badge"><span class="racing-dot"></span>Racing in Progress</div>
                 </div>
                 <span class="club-arrow">&rarr;</span>
             </a>
-            <a href="/results.html?club=wellington" class="club-card" data-club="wellington">
+            <a href="/results.html?club=marlborough" class="club-card" data-club="marlborough">
                 <div class="club-info">
-                    <span class="club-name">KartSport Wellington</span>
+                    <span class="club-name">KartSport Marlborough</span>
+                    <div class="racing-badge"><span class="racing-dot"></span>Racing in Progress</div>
+                </div>
+                <span class="club-arrow">&rarr;</span>
+            </a>
+            <a href="/results.html?club=westland" class="club-card" data-club="westland">
+                <div class="club-info">
+                    <span class="club-name">KartSport Westland</span>
+                    <div class="racing-badge"><span class="racing-dot"></span>Racing in Progress</div>
+                </div>
+                <span class="club-arrow">&rarr;</span>
+            </a>
+            <a href="/results.html?club=canterbury" class="club-card" data-club="canterbury">
+                <div class="club-info">
+                    <span class="club-name">KartSport Canterbury</span>
+                    <div class="racing-badge"><span class="racing-dot"></span>Racing in Progress</div>
+                </div>
+                <span class="club-arrow">&rarr;</span>
+            </a>
+            <a href="/results.html?club=southland" class="club-card" data-club="southland">
+                <div class="club-info">
+                    <span class="club-name">KartSport Southland</span>
                     <div class="racing-badge"><span class="racing-dot"></span>Racing in Progress</div>
                 </div>
                 <span class="club-arrow">&rarr;</span>
@@ -183,24 +175,13 @@
 
     <script>
         const socket = io();
-
-        // Listen for live status events sent from the server for each club room
-        const clubs = ['whangarei', 'auckland', 'hamilton', 'tokoroa', 'bop', 'ebop', 'taranaki', 'manawatu', 'wellington'];
+        const clubs = ['rotorua', 'hb', 'taranaki', 'nelson', 'marlborough', 'westland', 'canterbury', 'southland'];
 
         clubs.forEach(clubId => {
-            // Join all club rooms briefly on the index page to receive their orbit status broadcasts
             socket.emit('joinClub', clubId);
         });
 
-        socket.on('orbitStatus', (data) => {
-            // Assuming the server broadcasts club-specific status or includes club info. 
-            // If your server sends global status per room connection, you can track it via socket context or update your server handler to pass { clubId, isLive }.
-            // Alternatively, handling individual room status updates:
-        });
-
-        // Robust listener if server broadcasts status with club identifier:
         socket.on('clubStatusUpdate', (statusData) => {
-            // statusData format expected: { clubId: 'tokoroa', isLive: true }
             if (!statusData) return;
             const card = document.querySelector(`[data-club="${statusData.clubId}"]`);
             if (card) {
